@@ -2,15 +2,17 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                            QTreeWidget, QTreeWidgetItem, QSplitter)
 from PyQt6.QtCore import Qt
 import os
+from datetime import datetime
 from .result_chart_widget import ResultChartWidget
 
 class ResultTabWidget(QWidget):
     """测试结果标签页"""
-    def __init__(self, server_info, results, parent=None):
+    def __init__(self, server_info, results, current_dir, parent=None):
         super().__init__(parent)
         self.server_info = server_info
         self.results = results
         self.current_chart = None
+        self.current_dir = current_dir
         
         # 保存结果到文件
         self.save_results()
@@ -77,7 +79,8 @@ class ResultTabWidget(QWidget):
     def save_results(self):
         """保存测试结果到文件"""
         # 确保目录存在
-        result_dir = os.path.join('res', 'test_results', 
+        now = datetime.now()
+        result_dir = os.path.join(self.current_dir, 'res', now.strftime('%Y-%m-%d %H-%M-%S'), 
                                 str(self.server_info['id']))
         os.makedirs(result_dir, exist_ok=True)
         

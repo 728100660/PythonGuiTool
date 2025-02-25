@@ -18,9 +18,9 @@ class FileManager:
             
         tree = {}
         for root, dirs, files in os.walk(self.project_directory):
-            # 跳过隐藏文件和目录
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            files = [f for f in files if not f.startswith('.')]
+            # 跳过隐藏文件和目录和res目录
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'res']
+            files = [f for f in files if not f.startswith('.') and f != 'res']
             
             relative_path = os.path.relpath(root, self.project_directory)
             current_level = tree
@@ -42,6 +42,9 @@ class FileManager:
             
         changed_files = []
         for root, _, files in os.walk(self.project_directory):
+            # 跳过res目录下的所有文件
+            if 'res' in root.split(os.sep):
+                continue
             for file in files:
                 file_path = os.path.join(root, file)
                 with open(file_path, 'rb') as f:

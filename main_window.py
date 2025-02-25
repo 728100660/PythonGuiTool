@@ -69,6 +69,8 @@ class SubmitDialog(QDialog):
         
         # 添加所有文件，变更的文件默认选中
         for file_path in all_files:
+            if "res" in file_path.split(os.sep):
+                continue
             cb = QCheckBox(file_path)
             cb.setChecked(file_path in changed_files)  # 变更的文件默认选中
             if file_path in changed_files:
@@ -567,7 +569,7 @@ class MainWindow(QMainWindow):
                          if s['id'] == server_id)
         
         # 创建结果标签页
-        result_tab = ResultTabWidget(server_info, results)
+        result_tab = ResultTabWidget(server_info, results, self.file_manager.project_directory)
         
         # 添加新标签页
         tab_name = f"{server_info['name']}"
