@@ -38,9 +38,9 @@ class ResultChartWidget(QWidget):
             max_x = 0
             max_y = 0
             for x, y in series_data["data"]:
-                points.append(QPointF(x, y))
-                max_x = max(max_x, x)
-                max_y = max(max_y, y)
+                points.append(QPointF(float(x), float(y)))  # 确保转换为浮点数
+                max_x = max(max_x, float(x))
+                max_y = max(max_y, float(y))
             series.replace(points)
             
             # 保存初始范围
@@ -56,7 +56,7 @@ class ResultChartWidget(QWidget):
             self.axis_x.setTitleFont(QFont("Microsoft YaHei", 10))
             self.axis_x.setRange(*self.initial_x_range)
             self.axis_x.setTickCount(10)
-            self.axis_x.setLabelFormat("%d")
+            self.axis_x.setLabelFormat("%.0f")  # 使用整数格式
             self.axis_x.setLabelsFont(QFont("Microsoft YaHei", 9))
             
             self.axis_y = QValueAxis()
@@ -64,7 +64,7 @@ class ResultChartWidget(QWidget):
             self.axis_y.setTitleFont(QFont("Microsoft YaHei", 10))
             self.axis_y.setRange(*self.initial_y_range)
             self.axis_y.setTickCount(10)
-            self.axis_y.setLabelFormat("%d")
+            self.axis_y.setLabelFormat("%.2f")  # 保留两位小数
             self.axis_y.setLabelsFont(QFont("Microsoft YaHei", 9))
             
             self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
@@ -81,12 +81,16 @@ class ResultChartWidget(QWidget):
         # 添加到布局
         layout.addWidget(self.chart_view)
         
-        # 添加原始数据显示
+        # 添加表格显示
         text_view = QTextEdit()
         text_view.setReadOnly(True)
-        text_view.setText(results_text)
-        text_view.setMaximumHeight(100)
-        text_view.setFont(QFont("Microsoft YaHei", 9))
+        text_view.setFont(QFont("Courier New", 9))  # 使用等宽字体
+        
+        if series_data:
+            # 设置表格内容
+            text_view.setText(results_text)
+        
+        text_view.setMaximumHeight(200)
         layout.addWidget(text_view)
         
         # 连接鼠标滚轮事件

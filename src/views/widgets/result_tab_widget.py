@@ -59,13 +59,30 @@ class ResultTabWidget(QWidget):
     def populate_file_tree(self):
         """填充文件树"""
         for result in self.results['results']:
-            item = QTreeWidgetItem(self.file_tree)
-            item.setText(0, result['file'])
-            item.setData(0, Qt.ItemDataRole.UserRole, result)
+            if result.get('type') == 'folder':
+                # 创建文件夹节点
+                folder_item = QTreeWidgetItem(self.file_tree)
+                folder_item.setText(0, result['name'])
+                
+                # 添加子项
+                for child in result['children']:
+                    child_item = QTreeWidgetItem(folder_item)
+                    child_item.setText(0, child['file'])
+                    child_item.setData(0, Qt.ItemDataRole.UserRole, child)
+            else:
+                # 直接添加文件
+                item = QTreeWidgetItem(self.file_tree)
+                item.setText(0, result['file'])
+                item.setData(0, Qt.ItemDataRole.UserRole, result)
+        
+        # 展开所有项
+        self.file_tree.expandAll()
     
     def on_file_selected(self, item):
         """处理文件选择"""
         result_data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not result_data:  # 如果是文件夹节点，不显示图表
+            return
         
         # 清除现有图表
         if self.current_chart:
