@@ -345,7 +345,6 @@ class SimuData:
 
     def serverBet_Data_print(self, type=None):
         server_bet_data = self.simu_serverBet(type)
-        # TODO 以后key要允许配置，支持随服务器逻辑而变化
         key = (f"SimulateBetKey(groupId={self.data.get('group', 0)}, betType={self.data['betType']}, "
                f"gameActive={self.data['gameActive']}, unlockFunction={'true' if self.data['unlockFunction'] else 'false'})")
         data = server_bet_data[key]
@@ -355,8 +354,8 @@ class SimuData:
                 'totalTimes': data['totalTimes'],
                 'totalRtp': data['totalRtp'],
                 'normalRtp': data['normalRtp'],
-                'mgBounsRtp': data.get('mgBounsRtp', 0),    # TODO 为什么没有值
-                'fgBounsRtp': data.get('fgBounsRtp', 0),    # TODO 为什么没有值
+                'mgBounsRtp': data.get('mgBounsRtp', 0),
+                'fgBounsRtp': data.get('fgBounsRtp', 0),
                 'freeRtp': data['freeRtp'],
                 'jackpotRtp': data['jackpotRtp'],
                 'bonusRtp': data['bonusRtp'],
@@ -372,7 +371,7 @@ class SimuData:
             # },
             'FG': {
                 'freeRtp': data['freeRtp'],
-                'fgBounsRtp': data.get('fgBounsRtp', 0),    # TODO 为什么没有值
+                'fgBounsRtp': data.get('fgBounsRtp', 0),
                 'fg_Freq': data['totalTimes'] / data['fgTimes'] if data['fgTimes'] else 0,
                 'fg_times': data['fgTimes'],
             },
@@ -391,11 +390,11 @@ class SimuData:
             # 'mgBounsRtp':data['mgBounsRtp'],
         }
 
-        self.print_lab(data_info)
-        if data['totalTimes'] == self.data['times']:
-            self.printOut()
+        # self.print_lab(data_info)
+        # if data['totalTimes'] == self.data['times']:
+        #     self.printOut()
 
-        return data
+        return data_info
 
     def printOut(self):
         a = self.simu_serverBet()
@@ -540,13 +539,8 @@ class SimuData:
         print(tabulate(we, headers=head, tablefmt='double_outline'))
 
 
-def run(task_info, initial_info, old_game):
-    # url = 'http://192.168.30.13:8095/'
-    # url = 'http://192.168.30.74:8094/'
-    url = 'http://192.168.30.68:8096/'
-
+def run(url, task_info, initial_info, old_game, callback=None):
     game_id = initial_info["gameId"]
-
     axw = SimuData(url=url, game_id=game_id, data=initial_info)
 
     axw.sent_csv_toweb()
@@ -561,7 +555,9 @@ def run(task_info, initial_info, old_game):
     a = axw.simu_serverBet(1)
     for i in range(5000):
         time.sleep(3)
-        axw.serverBet_Data_print()
+        data = axw.serverBet_Data_print()
+        if callback:
+            callback(data)
 
     # a = axw.simu_OldGame(1)
     # for i in range(5000):
@@ -910,7 +906,10 @@ if __name__ == '__main__':
         'thread': 1,
 
     }
-    run(task_info, initial_info, old_game)
+    # url = 'http://192.168.30.13:8095/'
+    # url = 'http://192.168.30.74:8094/'
+    url = 'http://192.168.30.68:8096/'
+    run(url, task_info, initial_info, old_game)
     # old_game_check()
     # task_run(1)
     # rtp_check()
