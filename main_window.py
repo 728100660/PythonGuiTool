@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
         self.init_ui()
         
     def init_ui(self):
-        """初始化UI界面"""
+        """初始化UI"""
         self.setWindowTitle('服务器配表更新工具')
         self.setGeometry(100, 100, 1200, 800)
         
@@ -322,15 +322,31 @@ class MainWindow(QMainWindow):
         middle_panel = QWidget()
         middle_layout = QVBoxLayout(middle_panel)
         
-        # 工程目录操作按钮
-        dir_buttons_layout = QHBoxLayout()
+        # 目录选择区域
+        dir_area = QWidget()
+        dir_layout = QVBoxLayout(dir_area)
+        
+        # 第一行：工程目录
+        project_dir_layout = QHBoxLayout()
         self.select_dir_btn = QPushButton("选择工程目录")
         self.refresh_dir_btn = QPushButton("刷新工程目录")
-        self.current_dir_label = QLabel("当前目录: 未选择")
-        dir_buttons_layout.addWidget(self.select_dir_btn)
-        dir_buttons_layout.addWidget(self.refresh_dir_btn)
-        dir_buttons_layout.addWidget(self.current_dir_label)
-        middle_layout.addLayout(dir_buttons_layout)
+        self.current_dir_label = QLabel("当前工程目录: 未选择")
+        project_dir_layout.addWidget(self.select_dir_btn)
+        project_dir_layout.addWidget(self.refresh_dir_btn)
+        project_dir_layout.addWidget(self.current_dir_label)
+        project_dir_layout.addStretch()
+        dir_layout.addLayout(project_dir_layout)
+        
+        # 第二行：结果存储目录
+        result_dir_layout = QHBoxLayout()
+        self.res_dir_btn = QPushButton("选择结果存储目录")
+        self.current_res_dir_label = QLabel("当前结果目录: 未选择")
+        result_dir_layout.addWidget(self.res_dir_btn)
+        result_dir_layout.addWidget(self.current_res_dir_label)
+        result_dir_layout.addStretch()
+        dir_layout.addLayout(result_dir_layout)
+        
+        middle_layout.addWidget(dir_area)
         
         # 变更文件使用树形视图替代列表
         changed_group = QGroupBox("变更文件")
@@ -381,26 +397,24 @@ class MainWindow(QMainWindow):
     
     def connect_signals(self):
         """连接信号和槽"""
-        self.select_dir_btn.clicked.connect(self.select_directory)
+        self.select_dir_btn.clicked.connect(self.select_project_directory)
         self.refresh_dir_btn.clicked.connect(self.refresh_directory)
+        self.res_dir_btn.clicked.connect(self.select_result_directory)
         self.refresh_servers_btn.clicked.connect(self.refresh_servers)
         self.submit_btn.clicked.connect(self.submit_changes)
+        self.server_tree.clicked.connect(self.on_server_selected)
         
         # 修改文件树的信号连接
         self.file_tree.clicked.connect(self.on_file_selected)
         self.file_tree.doubleClicked.connect(self.on_file_double_clicked)
         self.changed_tree.doubleClicked.connect(self.on_changed_file_double_clicked)
-        
-        # 添加服务器选择响应
-        self.server_tree.clicked.connect(self.on_server_selected)
-
-
-    def select_directory(self):
+    
+    def select_project_directory(self):
         """选择工程目录"""
         dir_path = QFileDialog.getExistingDirectory(self, "选择工程目录")
         if dir_path:
             self.file_manager.set_project_directory(dir_path)
-            self.current_dir_label.setText(f"当前目录: {dir_path}")
+            self.current_dir_label.setText(f"当前工程目录: {dir_path}")
             
             # 更新文件树
             self.update_file_tree()
@@ -408,7 +422,14 @@ class MainWindow(QMainWindow):
             # 检测并显示变更文件
             self.changed_files = self.file_manager.get_changed_files()
             self.update_changed_tree()
-    
+
+    def select_result_directory(self):
+        """选择结果存储目录"""
+        dir_path = QFileDialog.getExistingDirectory(self, "选择结果存储目录")
+        if dir_path:
+            self.file_manager.set_result_directory(dir_path)
+            self.current_res_dir_label.setText(f"当前结果目录: {dir_path}")
+
     def refresh_directory(self):
         """刷新工程目录"""
         if self.file_manager.project_directory:
@@ -569,7 +590,7 @@ class MainWindow(QMainWindow):
                 
                 # 启动测试
                 success = self.server_api.update_config(
-                    server_id, selected_files, test_config)
+                    server_id, selected_files, test_config, self.file_manager.project_directory)
                 
                 if not success:
                     QMessageBox.warning(self, "错误", 
@@ -607,10 +628,14 @@ class MainWindow(QMainWindow):
         """添加测试结果标签页"""
         # 获取服务器信息
         server_info = next(s for s in self.server_api.get_server_list() 
-                         if s['id'] == server_id)
+                          if s['id'] == server_id)
         
-        # 创建结果标签页
-        result_tab = ResultTabWidget(server_info, results, self.file_manager.project_directory)
+        # 创建结果标签页，使用结果存储目录
+        result_tab = ResultTabWidget(
+            server_info, 
+            results, 
+            self.file_manager.get_result_directory()
+        )
         
         # 添加新标签页
         tab_name = f"{server_info['name']}"

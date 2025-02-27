@@ -6,10 +6,19 @@ class FileManager:
     def __init__(self, database: Database):
         self.database = database
         self.project_directory = None
+        self.result_directory = None
         
     def set_project_directory(self, directory: str):
         """设置工程目录"""
         self.project_directory = directory
+    
+    def set_result_directory(self, directory: str):
+        """设置结果存储目录"""
+        self.result_directory = directory
+    
+    def get_result_directory(self) -> str:
+        """获取结果存储目录，如果未设置则使用工程目录"""
+        return self.result_directory or self.project_directory
         
     def get_file_tree(self) -> Dict:
         """获取文件树结构"""
