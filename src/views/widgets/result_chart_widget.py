@@ -7,7 +7,7 @@ import re
 
 class ResultChartWidget(QWidget):
     """测试结果图表显示"""
-    def __init__(self, results_text, parent=None, series_data=None):
+    def __init__(self, results_text, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -25,53 +25,60 @@ class ResultChartWidget(QWidget):
         self.chart.legend().setVisible(True)
         self.chart.legend().setAlignment(Qt.AlignmentFlag.AlignBottom)
         
-        if series_data:
-            # 使用系列数据创建图表
-            self.series = QSplineSeries()
-            self.series.setName(series_data["name"])
-            pen = QPen(QColor("#1f77b4"))
-            pen.setWidth(3)
-            self.series.setPen(pen)
-            
-            # 添加数据点
-            points = []
-            max_x = 0
-            max_y = 0
-            for x, y in series_data["data"]:
-                points.append(QPointF(float(x), float(y)))  # 确保转换为浮点数
-                max_x = max(max_x, float(x))
-                max_y = max(max_y, float(y))
-            self.series.replace(points)
-            
-            # 保存初始范围
-            self.initial_x_range = (0, max_x * 1.1)
-            self.initial_y_range = (0, max_y * 1.1)
-            
-            # 添加系列到图表
-            self.chart.addSeries(self.series)
-            
-            # 创建坐标轴
-            self.axis_x = QValueAxis()
-            self.axis_x.setTitleText("测试次数")
-            self.axis_x.setTitleFont(QFont("Microsoft YaHei", 10))
-            self.axis_x.setRange(*self.initial_x_range)
-            self.axis_x.setTickCount(10)
-            self.axis_x.setLabelFormat("%.0f")  # 使用整数格式
-            self.axis_x.setLabelsFont(QFont("Microsoft YaHei", 9))
-            
-            self.axis_y = QValueAxis()
-            self.axis_y.setTitleText(series_data["name"])
-            self.axis_y.setTitleFont(QFont("Microsoft YaHei", 10))
-            self.axis_y.setRange(*self.initial_y_range)
-            self.axis_y.setTickCount(10)
-            self.axis_y.setLabelFormat("%.2f")  # 保留两位小数
-            self.axis_y.setLabelsFont(QFont("Microsoft YaHei", 9))
-            
-            self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
-            self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
-            
-            self.series.attachAxis(self.axis_x)
-            self.series.attachAxis(self.axis_y)
+        # 创建数据系列
+        series = QSplineSeries()  # 使用样条曲线，更平滑
+        series.setName("中奖次数")
+        pen = QPen(QColor("#1f77b4"))  # 设置更专业的颜色
+        pen.setWidth(3)
+        series.setPen(pen)
+        
+        # 解析结果文本
+        data_points = self.parse_results(results_text)
+        
+        # 添加数据点
+        max_x = 0
+        max_y = 0
+        points = []
+        for total, wins in data_points:
+            points.append(QPointF(total, wins))
+            max_x = max(max_x, total)
+            max_y = max(max_y, wins)
+        series.replace(points)  # 批量添加点，性能更好
+        
+        # 保存初始范围
+        self.initial_x_range = (0, max_x * 1.1)
+        self.initial_y_range = (0, max_y * 1.1)
+        
+        # 添加系列到图表
+        self.chart.addSeries(series)
+        
+        # 创建X轴
+        self.axis_x = QValueAxis()
+        self.axis_x.setTitleText("测试次数")
+        self.axis_x.setTitleFont(QFont("Microsoft YaHei", 10))
+        self.axis_x.setRange(*self.initial_x_range)
+        self.axis_x.setTickCount(10)
+        self.axis_x.setLabelFormat("%d")
+        self.axis_x.setLabelsFont(QFont("Microsoft YaHei", 9))
+        self.axis_x.setGridLineVisible(True)
+        self.axis_x.setMinorGridLineVisible(True)
+        
+        # 创建Y轴
+        self.axis_y = QValueAxis()
+        self.axis_y.setTitleText("中奖次数")
+        self.axis_y.setTitleFont(QFont("Microsoft YaHei", 10))
+        self.axis_y.setRange(*self.initial_y_range)
+        self.axis_y.setTickCount(10)
+        self.axis_y.setLabelFormat("%d")
+        self.axis_y.setLabelsFont(QFont("Microsoft YaHei", 9))
+        self.axis_y.setGridLineVisible(True)
+        self.axis_y.setMinorGridLineVisible(True)
+        
+        self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
+        self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
+        
+        series.attachAxis(self.axis_x)
+        series.attachAxis(self.axis_y)
         
         # 创建图表视图
         self.chart_view = QChartView(self.chart)
@@ -81,31 +88,13 @@ class ResultChartWidget(QWidget):
         # 添加到布局
         layout.addWidget(self.chart_view)
         
-        # 添加表格显示
-        # self.table_view = QTextEdit()
-        # self.table_view.setReadOnly(True)
-        # self.table_view.setFont(QFont("Courier New", 10))  # 使用更大的字体
-        # self.table_view.setStyleSheet("""
-        #     QTextEdit {
-        #         background-color: white;
-        #         border: 1px solid #ccc;
-        #     }
-        # """)
-        #
-        # if series_data:
-        #     # 生成表格内容
-        #     table_content = []
-        #     table_content.append(f"{'次数':<10}\t{series_data['name']:<15}")  # 表头
-        #     table_content.append("-" * 30)  # 分隔线
-        #
-        #     for x, y in series_data['data']:
-        #         table_content.append(f"{int(x):<10}\t{y:<15.2f}")
-        #
-        #     self.table_view.setText("\n".join(table_content))
-        #
-        # self.table_view.setMinimumHeight(150)
-        # self.table_view.setMaximumHeight(200)
-        # layout.addWidget(self.table_view)
+        # 添加原始数据显示
+        text_view = QTextEdit()
+        text_view.setReadOnly(True)
+        text_view.setText(results_text)
+        text_view.setMaximumHeight(100)
+        text_view.setFont(QFont("Microsoft YaHei", 9))
+        layout.addWidget(text_view)
         
         # 连接鼠标滚轮事件
         self.chart_view.wheelEvent = self.handle_wheel_event
@@ -159,30 +148,3 @@ class ResultChartWidget(QWidget):
             wins = int(match.group(2))
             data_points.append((total, wins))
         return sorted(data_points)  # 按总次数排序 
-
-    def update_chart(self, series_data):
-        """更新图表数据"""
-        if not series_data:
-            return
-        
-        # 获取当前视图范围
-        current_x_max = self.axis_x.max()
-        
-        # 检查是否需要缩放
-        new_x_max = max(x for x, _ in series_data['data'])
-        if new_x_max > current_x_max:
-            # 计算新的缩放比例
-            scale = current_x_max / new_x_max
-            new_x_range = (0, new_x_max * 1.1)  # 留出10%的空间
-            
-            # 更新X轴范围
-            self.axis_x.setRange(*new_x_range)
-            
-            # 同步更新Y轴范围
-            new_y_max = max(y for _, y in series_data['data'])
-            self.axis_y.setRange(0, new_y_max * 1.1)
-        
-        # 更新数据点
-        self.series.clear()
-        points = [QPointF(float(x), float(y)) for x, y in series_data['data']]
-        self.series.replace(points) 
