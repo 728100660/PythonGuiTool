@@ -238,8 +238,46 @@ class FileDiffDialog(QDialog):
         diff_layout.addWidget(old_group)
         diff_layout.addWidget(new_group)
         layout.addLayout(diff_layout)
-
-
+        
+        # 显示内容并高亮差异
+        self.show_diff(old_content, new_content)
+    
+    def show_diff(self, old_content, new_content):
+        """显示并高亮差异"""
+        import difflib
+        
+        # 将二进制内容转换为文本
+        try:
+            old_text = old_content.decode('utf-8') if old_content else ""
+            new_text = new_content.decode('utf-8') if new_content else ""
+        except UnicodeDecodeError:
+            self.old_text.setText("二进制文件")
+            self.new_text.setText("二进制文件")
+            return
+            
+        # 获取差异
+        differ = difflib.Differ()
+        diff = list(differ.compare(old_text.splitlines(), new_text.splitlines()))
+        
+        # 显示旧版本，标记删除的行
+        old_html = []
+        for line in diff:
+            if line.startswith('  ') or line.startswith('- '):
+                text = line[2:]
+                if line.startswith('- '):
+                    text = f'<span style="background-color: #ffcdd2;">{text}</span>'
+                old_html.append(text)
+        self.old_text.setHtml('<br>'.join(old_html))
+        
+        # 显示新版本，标记添加的行
+        new_html = []
+        for line in diff:
+            if line.startswith('  ') or line.startswith('+ '):
+                text = line[2:]
+                if line.startswith('+ '):
+                    text = f'<span style="background-color: #c8e6c9;">{text}</span>'
+                new_html.append(text)
+        self.new_text.setHtml('<br>'.join(new_html))
 
 class MainWindow(QMainWindow):
     def __init__(self, file_manager: FileManager, server_api: ServerAPI):
@@ -446,9 +484,18 @@ class MainWindow(QMainWindow):
         
         if os.path.isfile(file_path):
             self.show_file_diff(file_path)
-
+    
     def show_file_diff(self, file_path: str):
-        """显示文件差异 TODO """
+        """显示文件差异"""
+        try:
+            with open(file_path, 'rb') as f:
+                new_content = f.read()
+            old_content = self.file_manager.database.get_latest_version(file_path)
+            
+            dialog = FileDiffDialog(file_path, old_content, new_content, self)
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.warning(self, "错误", f"无法打开文件: {str(e)}")
     
     def select_changed_file(self, file_path: str):
         """在变更文件树中选中指定文件"""
