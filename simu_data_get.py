@@ -18,7 +18,7 @@ from tabulate import tabulate
 
 class SimuData:
 
-    def __init__(self, url, game_id, data=None, head=None, cookie=None):
+    def __init__(self, url, game_id, data=None, head=None, cookie=None, project_path=None):
         self.url = url
         self.game_id = game_id
         self.data = data
@@ -27,8 +27,12 @@ class SimuData:
         self.driver_path = r'C:\Users\admin\Desktop\模型\软件包\chromedriver-win64\chromedriver.exe'
         self.account = 'root'
         self.password = '123456'
+        self.project_path = project_path
+        self.csv_path = os.path.join(project_path, 'stage', 'server_csv')
+        self.script_path = os.path.join(project_path, 'csvScript')
 
-    def sent_csv_toweb(self, file_path='D:\slot\stage\server_csv', stop=True):
+    def sent_csv_toweb(self, stop=True):
+        file_path = self.csv_path
         self.tranForm_data()
         if stop:
             stop = self.url + 'SimulateLineGameController/stop?' + urllib.parse.urlencode({'gameId': self.game_id})
@@ -172,15 +176,14 @@ class SimuData:
         io = 'sd'
         return io
 
-    @classmethod
-    def tranForm_data(cls, type='stage'):
+    def tranForm_data(self, type='stage'):
         type_list = {'stage': 'server_transform-stage.bat', 'system': 'server_transform-system.bat'}
-        fold_address = r'D:\\slot\\csvScript\\'
+        fold_address = self.script_path
         bat_name = type_list[type]
         original_path = os.getcwd()
         os.chdir(fold_address)
         # os.environ['PYTHONIOENCODING'] = 'utf8'
-        p = Popen("cmd.exe /c" + fold_address + bat_name, stdout=PIPE, stderr=STDOUT)
+        p = Popen("cmd.exe /c" + os.path.join(fold_address, bat_name), stdout=PIPE, stderr=STDOUT)
         curline = p.stdout.readline()
         print(curline.decode('utf8'))
         while 'pause' not in curline.decode('utf8'):
@@ -539,13 +542,11 @@ class SimuData:
         print(tabulate(we, headers=head, tablefmt='double_outline'))
 
 
-def run(url, task_info, initial_info, old_game, csv_path, callback=None, project_path=None):
+def run(url, task_info, initial_info, old_game, callback=None, project_path=None):
     game_id = initial_info["gameId"]
-    axw = SimuData(url=url, game_id=game_id, data=initial_info)
+    axw = SimuData(url=url, game_id=game_id, data=initial_info, project_path=project_path)
 
-    # csv_path = 'D:\slot\stage\server_csv'
-    csv_path = os.path.join(project_path, 'stage', 'server_csv')
-    axw.sent_csv_toweb(file_path=csv_path)
+    axw.sent_csv_toweb()
     # axw.sent_csv_toweb_special(file_path='D:\slot\stage\server_csv\关卡模式表', stop=True)
     # axw.simu_Bet(1)
     # for i in range(1000):
@@ -911,7 +912,7 @@ if __name__ == '__main__':
     # url = 'http://192.168.30.13:8095/'
     # url = 'http://192.168.30.74:8094/'
     url = 'http://192.168.30.68:8096/'
-    run(url, task_info, initial_info, old_game)
+    run(url, task_info, initial_info, old_game, callback=None, project_path="D:\\slot\\")
     # old_game_check()
     # task_run(1)
     # rtp_check()
