@@ -540,52 +540,13 @@ class SimuData:
         print(tabulate(we, headers=head, tablefmt='double_outline'))
 
 
-def run():
+def run(task_info, initial_info, old_game):
     # url = 'http://192.168.30.13:8095/'
     # url = 'http://192.168.30.74:8094/'
     url = 'http://192.168.30.68:8096/'
 
-    game_id = 162
-    task_info = {
-        'betMoney': 2000000,
-        'betType': 0,
-        'gameActive': 1,
-        'gameId': game_id,
-        # 'group':30,
-        # 'chooseIndex':0,
-        'initLevel': 650,
-        'initMoney': 10000000000000000000,
-        'threadNum': 1,
-        'times': 10000,
-    }
-    initial_info = {
-        'betMoney': 1000000000,
-        'betType': 0,
-        'gameActive': 1,
-        'gameId': game_id,
-        'brokenInitialIndex': 60,
-        'ex': 0.9,
-        'unlockFunction': True,
-        # 'group':30,
-        # 'chooseIndex':0,
-        'initVipLevel': 1,
-        'initLevel': 100,
-        'initMoney': 10000000000000000000,
-        'threadNum': 8,
-        'times': 50000000,
-    }
-    old_game = {
-        'betMoney': 10000,
-        'betTypeEnum': 'REGULAR',
-        'gameId': game_id,
-        'gameActive': 1,
-        'initMoney': 10000000000,
-        'level': 200,
-        'parameter': 2,
-        'run': 10000000,
-        'thread': 1,
+    game_id = initial_info["gameId"]
 
-    }
     axw = SimuData(url=url, game_id=game_id, data=initial_info)
 
     axw.sent_csv_toweb()
@@ -908,7 +869,48 @@ def old_game_check():
 
 
 if __name__ == '__main__':
-    run()
+    game_id = 162
+    task_info = {
+        'betMoney': 2000000,
+        'betType': 0,
+        'gameActive': 1,
+        'gameId': game_id,
+        # 'group':30,
+        # 'chooseIndex':0,
+        'initLevel': 650,
+        'initMoney': 10000000000000000000,
+        'threadNum': 1,
+        'times': 10000,
+    }
+    initial_info = {
+        'betMoney': 1000000000,
+        'betType': 0,
+        'gameActive': 1,
+        'gameId': game_id,
+        'brokenInitialIndex': 60,
+        'ex': 0.9,
+        'unlockFunction': True,
+        # 'group':30,
+        # 'chooseIndex':0,
+        'initVipLevel': 1,
+        'initLevel': 100,
+        'initMoney': 10000000000000000000,
+        'threadNum': 8,
+        'times': 50000000,
+    }
+    old_game = {
+        'betMoney': 10000,
+        'betTypeEnum': 'REGULAR',
+        'gameId': game_id,
+        'gameActive': 1,
+        'initMoney': 10000000000,
+        'level': 200,
+        'parameter': 2,
+        'run': 10000000,
+        'thread': 1,
+
+    }
+    run(task_info, initial_info, old_game)
     # old_game_check()
     # task_run(1)
     # rtp_check()

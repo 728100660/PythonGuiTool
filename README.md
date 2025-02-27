@@ -71,6 +71,7 @@ pip install -r requirements.txt
 # - json5>=0.9.0：JSON处理
 # - requests>=2.31.0：HTTP请求
 ```
+还有安装node.js  v18.15.0
 
 ## 使用说明
 
