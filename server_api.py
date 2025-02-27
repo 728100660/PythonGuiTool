@@ -1,3 +1,5 @@
+import json
+
 class ServerAPI:
     def __init__(self):
         # 模拟服务器列表数据
@@ -12,9 +14,10 @@ class ServerAPI:
         print("调用获取服务器列表接口")
         return self.mock_servers
     
-    def update_config(self, server_id: int, files: list) -> bool:
+    def update_config(self, server_id: int, files: list, test_config: dict) -> bool:
         """更新服务器配置（预留接口）"""
         print(f"调用更新配置接口 - 服务器ID: {server_id}, 文件列表: {files}")
+        print(f"测试配置: {json.dumps(test_config, indent=2, ensure_ascii=False)}")
         return True
     
     def get_test_results(self, server_id: int) -> dict:

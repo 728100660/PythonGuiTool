@@ -86,15 +86,33 @@ class SubmitDialog(QDialog):
         scroll.setWidgetResizable(True)
         layout.addWidget(scroll)
         
-        # 确认和取消按钮
+        # 按钮区域
         buttons_layout = QHBoxLayout()
+        
+        # 添加配置按钮
+        self.config_btn = QPushButton("测试配置")
+        self.config_btn.setMinimumWidth(100)  # 设置最小宽度
+        
+        # 确认和取消按钮
         self.ok_button = QPushButton("确认")
+        self.ok_button.setMinimumWidth(100)
         self.cancel_button = QPushButton("取消")
+        self.cancel_button.setMinimumWidth(100)
+        
+        # 添加到按钮布局
+        buttons_layout.addWidget(self.config_btn)
+        buttons_layout.addStretch()  # 添加弹性空间
         buttons_layout.addWidget(self.ok_button)
         buttons_layout.addWidget(self.cancel_button)
+        
+        # 重要：将按钮布局添加到主布局
         layout.addLayout(buttons_layout)
         
+        # 存储配置
+        self.test_config = None
+        
         # 连接信号
+        self.config_btn.clicked.connect(self.show_config_dialog)
         self.ok_button.clicked.connect(self.accept)
         self.cancel_button.clicked.connect(self.reject)
         select_all.stateChanged.connect(
@@ -102,13 +120,20 @@ class SubmitDialog(QDialog):
                          for cb in self.file_checkboxes.values()]
         )
     
+    def show_config_dialog(self):
+        """显示配置对话框"""
+        from src.views.dialogs.config_dialog import ConfigDialog
+        dialog = ConfigDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.test_config = dialog.get_config()
+    
     def get_selected(self):
         """获取选中的服务器和文件"""
         selected_servers = [sid for sid, cb in self.server_checkboxes.items() 
                           if cb.isChecked()]
         selected_files = [path for path, cb in self.file_checkboxes.items() 
                          if cb.isChecked()]
-        return selected_servers, selected_files
+        return selected_servers, selected_files, self.test_config
 
 class TestResultChart(QWidget):
     """测试结果图表显示"""
@@ -471,7 +496,11 @@ class MainWindow(QMainWindow):
                             self.server_api.get_server_list(), self)
         
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            selected_servers, selected_files = dialog.get_selected()
+            selected_servers, selected_files, test_config = dialog.get_selected()
+            
+            if not test_config:
+                QMessageBox.warning(self, "警告", "请先配置测试参数")
+                return
 
             # 更新保存的文件版本
             for file in selected_files:
@@ -479,13 +508,15 @@ class MainWindow(QMainWindow):
             
             # 对每个选中的服务器进行更新
             for server_id in selected_servers:
-                success = self.server_api.update_config(server_id, selected_files)
+                success = self.server_api.update_config(
+                    server_id, selected_files, test_config)
                 if success:
                     # 获取测试结果并添加新标签页
                     test_results = self.server_api.get_test_results(server_id)
                     self.add_result_tab(server_id, test_results)
                 else:
-                    QMessageBox.warning(self, "错误", f"服务器 {server_id} 更新失败")
+                    QMessageBox.warning(self, "错误", 
+                                      f"服务器 {server_id} 更新失败")
     
     def update_changed_tree(self):
         """更新变更文件树"""
