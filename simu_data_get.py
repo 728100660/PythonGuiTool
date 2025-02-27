@@ -374,6 +374,7 @@ class SimuData:
                 'fgBounsRtp': data.get('fgBounsRtp', 0),
                 'fg_Freq': data['totalTimes'] / data['fgTimes'] if data['fgTimes'] else 0,
                 'fg_times': data['fgTimes'],
+                'totalTimes': data['totalTimes'],
             },
             # 'Jackpot':{
             #     'jackpotRtp': data['jackpotRtp'],
