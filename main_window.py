@@ -555,13 +555,23 @@ class MainWindow(QMainWindow):
             
             # 对每个选中的服务器进行更新
             for server_id in selected_servers:
+                # 创建结果标签页
+                initial_results = {
+                    "status": "starting",
+                    "results": []
+                }
+                self.add_result_tab(server_id, initial_results)
+                
+                # 连接结果更新信号
+                self.server_api.result_listener.result_updated.connect(
+                    lambda results, sid=server_id: self.update_result_tab(sid, results)
+                )
+                
+                # 启动测试
                 success = self.server_api.update_config(
                     server_id, selected_files, test_config)
-                if success:
-                    # 获取测试结果并添加新标签页
-                    test_results = self.server_api.get_test_results(server_id)
-                    self.add_result_tab(server_id, test_results)
-                else:
+                
+                if not success:
                     QMessageBox.warning(self, "错误", 
                                       f"服务器 {server_id} 更新失败")
     
@@ -614,4 +624,13 @@ class MainWindow(QMainWindow):
     def view_result_file(self, file_path: str):
         """查看结果文件"""
         dialog = FileViewDialog(file_path, self)
-        dialog.exec() 
+        dialog.exec()
+    
+    def update_result_tab(self, server_id: int, results: dict):
+        """更新结果标签页"""
+        # 查找对应的标签页
+        for i in range(self.result_tabs.count()):
+            tab = self.result_tabs.widget(i)
+            if isinstance(tab, ResultTabWidget) and tab.server_info['id'] == server_id:
+                tab.update_results(results)
+                break 

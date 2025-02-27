@@ -31,8 +31,8 @@ class ResultTabWidget(QWidget):
         file_layout = QVBoxLayout(file_widget)
         
         # 状态标签
-        status_label = QLabel(f"测试状态: {self.results['status']}")
-        file_layout.addWidget(status_label)
+        self.status_label = QLabel(f"测试状态: {self.results['status']}")
+        file_layout.addWidget(self.status_label)
         
         # 文件树
         self.file_tree = QTreeWidget()
@@ -73,7 +73,10 @@ class ResultTabWidget(QWidget):
             self.current_chart.deleteLater()
         
         # 创建新图表
-        self.current_chart = ResultChartWidget(result_data['content'])
+        self.current_chart = ResultChartWidget(
+            result_data['content'],
+            series_data=result_data.get('series_data')
+        )
         self.chart_layout.addWidget(self.current_chart)
     
     def save_results(self):
@@ -88,4 +91,19 @@ class ResultTabWidget(QWidget):
         for result in self.results['results']:
             file_path = os.path.join(result_dir, result['file'])
             with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(result['content']) 
+                f.write(result['content'])
+    
+    def update_results(self, results: dict):
+        """更新测试结果"""
+        self.results = results
+        
+        # 更新状态标签
+        self.status_label.setText(f"测试状态: {results['status']}")
+        
+        # 更新文件树
+        self.file_tree.clear()
+        self.populate_file_tree()
+        
+        # 如果当前有选中的图表，更新它
+        if self.current_chart and self.file_tree.currentItem():
+            self.on_file_selected(self.file_tree.currentItem()) 
