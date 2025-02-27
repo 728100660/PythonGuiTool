@@ -174,7 +174,6 @@ class SimuData:
 
     @classmethod
     def tranForm_data(cls, type='stage'):
-        return      # TODO 暂时不检查
         type_list = {'stage': 'server_transform-stage.bat', 'system': 'server_transform-system.bat'}
         fold_address = r'D:\\slot\\csvScript\\'
         bat_name = type_list[type]
@@ -540,11 +539,13 @@ class SimuData:
         print(tabulate(we, headers=head, tablefmt='double_outline'))
 
 
-def run(url, task_info, initial_info, old_game, callback=None):
+def run(url, task_info, initial_info, old_game, csv_path, callback=None, project_path=None):
     game_id = initial_info["gameId"]
     axw = SimuData(url=url, game_id=game_id, data=initial_info)
 
-    axw.sent_csv_toweb()
+    # csv_path = 'D:\slot\stage\server_csv'
+    csv_path = os.path.join(project_path, 'stage', 'server_csv')
+    axw.sent_csv_toweb(file_path=csv_path)
     # axw.sent_csv_toweb_special(file_path='D:\slot\stage\server_csv\关卡模式表', stop=True)
     # axw.simu_Bet(1)
     # for i in range(1000):

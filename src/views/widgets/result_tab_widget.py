@@ -7,12 +7,12 @@ from .result_chart_widget import ResultChartWidget
 
 class ResultTabWidget(QWidget):
     """测试结果标签页"""
-    def __init__(self, server_info, results, current_dir, parent=None):
+    def __init__(self, server_info, results, res_dir, parent=None):
         super().__init__(parent)
         self.server_info = server_info
         self.results = results
         self.current_chart = None
-        self.current_dir = current_dir
+        self.res_dir = res_dir
         self.start_time = datetime.now()
         
         # 保存结果到文件
@@ -100,9 +100,12 @@ class ResultTabWidget(QWidget):
     def save_results(self):
         """保存测试结果到文件"""
         # 确保目录存在
-        result_dir = os.path.join(self.current_dir, 'res',
-                                  self.start_time.strftime('%Y-%m-%d %H-%M-%S'),
-                                  str(self.server_info['id']))
+        result_dir = os.path.join(
+            self.res_dir,  # 这里current_dir已经是结果存储目录
+            'res',
+            self.start_time.strftime('%Y-%m-%d %H-%M-%S'),
+            str(self.server_info['id'])
+        )
         os.makedirs(result_dir, exist_ok=True)
         
         # 保存每个结果文件

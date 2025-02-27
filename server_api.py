@@ -127,7 +127,8 @@ class ServerAPI:
         print("调用获取服务器列表接口")
         return self.mock_servers
     
-    def update_config(self, server_id: int, files: list, test_config: dict) -> bool:
+    def update_config(self, server_id: int, files: list, test_config: dict,
+                      project_path: str) -> bool:
         """更新服务器配置并启动测试"""
         url = self.get_server_config(server_id)["address"]
         task_info = test_config["task_info"]
@@ -138,7 +139,8 @@ class ServerAPI:
         def run_test():
             simu_data_get.run(
                 url, task_info, initial_info, old_game,
-                callback=self.result_listener.on_result_update
+                callback=self.result_listener.on_result_update,
+                project_path=project_path
             )
         
         thread = threading.Thread(target=run_test)
