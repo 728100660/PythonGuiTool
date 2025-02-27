@@ -28,10 +28,14 @@ class FileManager:
         tree = {}
         for root, dirs, files in os.walk(self.project_directory):
             # 跳过隐藏文件和目录和res目录
-            dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'res']
-            files = [f for f in files if not f.startswith('.') and f != 'res']
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            files = [f for f in files if not f.startswith('.')  and f.endswith('.csv')]
             
             relative_path = os.path.relpath(root, self.project_directory)
+            
+            # 只看stage\server_csv目录下的文件
+            if 'stage' not in relative_path or 'server_csv' not in relative_path:
+                continue
             current_level = tree
             
             if relative_path != '.':
@@ -51,9 +55,13 @@ class FileManager:
             
         changed_files = []
         for root, _, files in os.walk(self.project_directory):
-            # 跳过res目录下的所有文件
-            if 'res' in root.split(os.sep):
+            files = [f for f in files if not f.startswith('.')  and f.endswith('.csv')]
+            relative_path = os.path.relpath(root, self.project_directory)
+
+            # 只看stage\server_csv目录下的文件
+            if 'stage' not in relative_path or 'server_csv' not in relative_path:
                 continue
+
             for file in files:
                 file_path = os.path.join(root, file)
                 with open(file_path, 'rb') as f:
@@ -62,7 +70,7 @@ class FileManager:
                 stored_content = self.database.get_latest_version(file_path)
                 if stored_content is None or stored_content != current_content:
                     changed_files.append(file_path)
-                    
+
         return changed_files
         
     def save_current_version(self, file_path: str):
@@ -81,9 +89,14 @@ class FileManager:
         
         all_files = []
         for root, _, files in os.walk(self.project_directory):
+            files = [f for f in files if not f.startswith('.') and f.endswith('.csv')]
+            relative_path = os.path.relpath(root, self.project_directory)
+
+            # 只看stage\server_csv目录下的文件
+            if 'stage' not in relative_path or 'server_csv' not in relative_path:
+                continue
             for file in files:
-                if not file.startswith('.'):  # 跳过隐藏文件
-                    file_path = os.path.join(root, file)
-                    all_files.append(file_path)
+                file_path = os.path.join(root, file)
+                all_files.append(file_path)
         
         return all_files 
