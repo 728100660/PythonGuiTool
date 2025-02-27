@@ -51,7 +51,7 @@ class TestResultListener(QObject):
             }
             
             overall = self.accumulated_data['overall']
-            times = self.accumulated_data['overall']['totalTimes']
+            times = overall['totalTimes']
             
             for key, values in overall.items():
                 if key != 'totalTimes':
@@ -61,13 +61,16 @@ class TestResultListener(QObject):
                     }
                     
                     # 生成表格内容
-                    table_content = "次数\t{}\n".format(key)
-                    table_content += "\n".join(f"{t}\t{v}" for t, v in zip(times, values))
+                    table_rows = []
+                    table_rows.append(f"{'次数':<10}\t{key:<15}")
+                    table_rows.append("-" * 30)
+                    for t, v in zip(times, values):
+                        table_rows.append(f"{int(t):<10}\t{float(v):<15.2f}")
                     
                     overall_folder["children"].append({
                         "file": f"{key}.txt",
                         "status": "running",
-                        "content": table_content,
+                        "content": "\n".join(table_rows),
                         "series_data": series_data
                     })
             
@@ -92,13 +95,16 @@ class TestResultListener(QObject):
                     }
                     
                     # 生成表格内容
-                    table_content = "次数\t{}\n".format(key)
-                    table_content += "\n".join(f"{t}\t{v}" for t, v in zip(times, values))
+                    table_rows = []
+                    table_rows.append(f"{'次数':<10}\t{key:<15}")
+                    table_rows.append("-" * 30)
+                    for t, v in zip(times, values):
+                        table_rows.append(f"{int(t):<10}\t{float(v):<15.2f}")
                     
                     fg_folder["children"].append({
                         "file": f"{key}.txt",
                         "status": "running",
-                        "content": table_content,
+                        "content": "\n".join(table_rows),
                         "series_data": series_data
                     })
             

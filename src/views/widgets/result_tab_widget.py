@@ -13,6 +13,7 @@ class ResultTabWidget(QWidget):
         self.results = results
         self.current_chart = None
         self.current_dir = current_dir
+        self.start_time = datetime.now()
         
         # 保存结果到文件
         self.save_results()
@@ -99,16 +100,34 @@ class ResultTabWidget(QWidget):
     def save_results(self):
         """保存测试结果到文件"""
         # 确保目录存在
-        now = datetime.now()
-        result_dir = os.path.join(self.current_dir, 'res', now.strftime('%Y-%m-%d %H-%M-%S'), 
-                                str(self.server_info['id']))
+        result_dir = os.path.join(self.current_dir, 'res',
+                                  self.start_time.strftime('%Y-%m-%d %H-%M-%S'),
+                                  str(self.server_info['id']))
         os.makedirs(result_dir, exist_ok=True)
         
         # 保存每个结果文件
         for result in self.results['results']:
-            file_path = os.path.join(result_dir, result['file'])
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(result['content'])
+            if result.get('type') == 'folder':
+                # 创建文件夹
+                folder_path = os.path.join(result_dir, result['name'])
+                os.makedirs(folder_path, exist_ok=True)
+                
+                # 保存子文件
+                for child in result['children']:
+                    file_path = os.path.join(folder_path, child['file'])
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        # 保存表格格式的数据
+                        if 'series_data' in child:
+                            series = child['series_data']
+                            f.write(f"次数\t{series['name']}\n")
+                            for x, y in series['data']:
+                                f.write(f"{x}\t{y}\n")
+                        else:
+                            f.write(child['content'])
+            else:
+                file_path = os.path.join(result_dir, result['file'])
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(result['content'])
     
     def update_results(self, results: dict):
         """更新测试结果"""
@@ -123,4 +142,6 @@ class ResultTabWidget(QWidget):
         
         # 如果当前有选中的图表，更新它
         if self.current_chart and self.file_tree.currentItem():
-            self.on_file_selected(self.file_tree.currentItem()) 
+            self.on_file_selected(self.file_tree.currentItem())
+
+        self.save_results()
