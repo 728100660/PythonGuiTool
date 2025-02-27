@@ -7,39 +7,102 @@ class TestResultListener(QObject):
     """测试结果监听器"""
     result_updated = pyqtSignal(dict)  # 结果更新信号
 
+    def __init__(self):
+        super().__init__()
+        self.accumulated_data = {
+            'overall': {'totalTimes': []},
+            'FG': {'totalTimes': []}
+        }
+
     def on_result_update(self, result):
         """处理结果更新"""
-        self.result_updated.emit(self._process_result(result))
+        # 累积数据
+        if 'overall' in result:
+            self._accumulate_data('overall', result['overall'])
+        if 'FG' in result:
+            self._accumulate_data('FG', result['FG'])
+        
+        self.result_updated.emit(self._process_result())
     
-    def _process_result(self, result):
-        """处理单次结果"""
+    def _accumulate_data(self, category, data):
+        """累积数据"""
+        times = data.get('totalTimes', 0)
+        if times not in self.accumulated_data[category]['totalTimes']:
+            self.accumulated_data[category]['totalTimes'].append(times)
+            for key, value in data.items():
+                if key != 'totalTimes':
+                    if key not in self.accumulated_data[category]:
+                        self.accumulated_data[category][key] = []
+                    self.accumulated_data[category][key].append(value)
+
+    def _process_result(self):
+        """处理累积的结果"""
         processed_result = {
             "status": "running",
             "results": []
         }
         
-        if "overall" in result:
-            overall = result["overall"]
-            data_points = []
-            for key, value in overall.items():
-                if key != "totalTimes":
-                    data_points.append({
+        # 处理 overall 结果
+        if self.accumulated_data['overall']['totalTimes']:
+            overall_folder = {
+                "name": "Overall Results",
+                "type": "folder",
+                "children": []
+            }
+            
+            overall = self.accumulated_data['overall']
+            times = self.accumulated_data['overall']['totalTimes']
+            
+            for key, values in overall.items():
+                if key != 'totalTimes':
+                    series_data = {
                         "name": key,
-                        "data": [(overall["totalTimes"], value)]
+                        "data": list(zip(times, values))
+                    }
+                    
+                    # 生成表格内容
+                    table_content = "次数\t{}\n".format(key)
+                    table_content += "\n".join(f"{t}\t{v}" for t, v in zip(times, values))
+                    
+                    overall_folder["children"].append({
+                        "file": f"{key}.txt",
+                        "status": "running",
+                        "content": table_content,
+                        "series_data": series_data
                     })
             
-            # 生成结果文本和数据系列
-            for series in data_points:
-                content_lines = []
-                for x, y in series["data"]:
-                    content_lines.append(f"{x}次，{series['name']}为{y}")
-                
-                processed_result["results"].append({
-                    "file": f"overall_{series['name']}.txt",
-                    "status": "running",
-                    "content": "\n".join(content_lines),
-                    "series_data": series
-                })
+            processed_result["results"].append(overall_folder)
+        
+        # 处理 FG 结果
+        if self.accumulated_data['FG']['totalTimes']:
+            fg_folder = {
+                "name": "FG Results",
+                "type": "folder",
+                "children": []
+            }
+            
+            fg = self.accumulated_data['FG']
+            times = self.accumulated_data['FG']['totalTimes']
+            
+            for key, values in fg.items():
+                if key != 'totalTimes':
+                    series_data = {
+                        "name": key,
+                        "data": list(zip(times, values))
+                    }
+                    
+                    # 生成表格内容
+                    table_content = "次数\t{}\n".format(key)
+                    table_content += "\n".join(f"{t}\t{v}" for t, v in zip(times, values))
+                    
+                    fg_folder["children"].append({
+                        "file": f"{key}.txt",
+                        "status": "running",
+                        "content": table_content,
+                        "series_data": series_data
+                    })
+            
+            processed_result["results"].append(fg_folder)
         
         return processed_result
 
