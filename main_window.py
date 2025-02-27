@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QPushButton, QTreeView, QFileDialog, QLabel,
                            QTextEdit, QDialog, QCheckBox, QScrollArea,
-                           QGroupBox, QMessageBox, QTabWidget, QListWidget)
+                           QGroupBox, QMessageBox, QTabWidget, QListWidget,
+                           QSplitter)
 from PyQt6.QtCore import Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QPainter
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
@@ -302,29 +303,45 @@ class MainWindow(QMainWindow):
         # 创建中心部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
         
-        # 创建主布局
-        main_layout = QHBoxLayout(central_widget)
+        # 创建水平分割器
+        h_splitter = QSplitter(Qt.Orientation.Horizontal)
         
-        # 左侧面板（服务器列表）
+        # 左侧面板 - 服务器列表
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         
-        self.server_label = QLabel("服务器列表")
+        # 服务器列表标题和刷新按钮
+        server_header = QWidget()
+        server_header_layout = QHBoxLayout(server_header)
+        server_header_layout.setContentsMargins(0, 0, 0, 0)
+        server_label = QLabel("服务器列表")
+        self.refresh_servers_btn = QPushButton("刷新")
+        server_header_layout.addWidget(server_label)
+        server_header_layout.addWidget(self.refresh_servers_btn)
+        left_layout.addWidget(server_header)
+        
+        # 服务器树
         self.server_tree = QTreeView()
-        self.refresh_servers_btn = QPushButton("刷新服务器列表")
-        
-        left_layout.addWidget(self.server_label)
+        self.server_model = QStandardItemModel()
+        self.server_model.setHorizontalHeaderLabels(['服务器列表'])
+        self.server_tree.setModel(self.server_model)
         left_layout.addWidget(self.server_tree)
-        left_layout.addWidget(self.refresh_servers_btn)
         
-        # 中间面板（文件树和变更文件）
+        # 将左侧面板添加到分割器
+        h_splitter.addWidget(left_panel)
+        
+        # 中间面板 - 文件列表和变更文件
         middle_panel = QWidget()
         middle_layout = QVBoxLayout(middle_panel)
+        middle_layout.setContentsMargins(0, 0, 0, 0)
         
         # 目录选择区域
         dir_area = QWidget()
         dir_layout = QVBoxLayout(dir_area)
+        dir_layout.setContentsMargins(0, 0, 0, 0)
         
         # 第一行：工程目录
         project_dir_layout = QHBoxLayout()
@@ -348,49 +365,55 @@ class MainWindow(QMainWindow):
         
         middle_layout.addWidget(dir_area)
         
-        # 变更文件使用树形视图替代列表
-        changed_group = QGroupBox("变更文件")
-        changed_layout = QVBoxLayout()
+        # 创建垂直分割器用于文件树和变更文件树
+        v_splitter = QSplitter(Qt.Orientation.Vertical)
+        
+        # 文件树
+        file_tree_widget = QWidget()
+        file_tree_layout = QVBoxLayout(file_tree_widget)
+        file_tree_layout.setContentsMargins(0, 0, 0, 0)
+        file_tree_label = QLabel("文件列表")
+        file_tree_layout.addWidget(file_tree_label)
+        self.file_tree = QTreeView()
+        self.file_model = QStandardItemModel()
+        self.file_model.setHorizontalHeaderLabels(['文件列表'])
+        self.file_tree.setModel(self.file_model)
+        file_tree_layout.addWidget(self.file_tree)
+        v_splitter.addWidget(file_tree_widget)
+        
+        # 变更文件树
+        changed_tree_widget = QWidget()
+        changed_tree_layout = QVBoxLayout(changed_tree_widget)
+        changed_tree_layout.setContentsMargins(0, 0, 0, 0)
+        changed_tree_label = QLabel("变更文件")
+        changed_tree_layout.addWidget(changed_tree_label)
         self.changed_tree = QTreeView()
         self.changed_model = QStandardItemModel()
+        self.changed_model.setHorizontalHeaderLabels(['变更文件'])
         self.changed_tree.setModel(self.changed_model)
-        changed_layout.addWidget(self.changed_tree)
-        changed_group.setLayout(changed_layout)
+        changed_tree_layout.addWidget(self.changed_tree)
+        v_splitter.addWidget(changed_tree_widget)
         
-        # 文件树和变更文件的分割显示
-        files_layout = QHBoxLayout()
-        
-        # 文件树部分
-        tree_group = QGroupBox("文件树")
-        tree_layout = QVBoxLayout()
-        self.file_tree = QTreeView()
-        tree_layout.addWidget(self.file_tree)
-        tree_group.setLayout(tree_layout)
-        
-        files_layout.addWidget(tree_group)
-        files_layout.addWidget(changed_group)
-        middle_layout.addLayout(files_layout)
+        middle_layout.addWidget(v_splitter)
         
         # 提交按钮
         self.submit_btn = QPushButton("提交更新")
         middle_layout.addWidget(self.submit_btn)
         
-        # 右侧面板（测试结果）
+        # 将中间面板添加到水平分割器
+        h_splitter.addWidget(middle_panel)
+        
+        # 右侧面板 - 结果标签页
         self.result_tabs = QTabWidget()
         self.result_tabs.setTabsClosable(True)
         self.result_tabs.tabCloseRequested.connect(self.close_result_tab)
+        h_splitter.addWidget(self.result_tabs)
         
-        # 添加到主布局
-        main_layout.addWidget(left_panel, 1)
-        main_layout.addWidget(middle_panel, 4)
-        main_layout.addWidget(self.result_tabs, 8)
+        # 设置分割器的初始大小比例
+        h_splitter.setSizes([200, 400, 600])  # 左侧、中间、右侧的初始宽度
         
-        # 设置模型
-        self.server_tree.setModel(self.server_model)
-        self.file_tree.setModel(self.file_model)
-        
-        # 初始化服务器列表
-        self.refresh_servers()
+        # 将水平分割器添加到主布局
+        main_layout.addWidget(h_splitter)
         
         # 连接信号
         self.connect_signals()
@@ -416,6 +439,12 @@ class MainWindow(QMainWindow):
             self.file_manager.set_project_directory(dir_path)
             self.current_dir_label.setText(f"当前工程目录: {dir_path}")
             
+            # 更新默认结果目录显示
+            default_res_dir = self.file_manager.get_result_directory()
+            self.current_res_dir_label.setText(
+                f"当前结果目录: {default_res_dir} (默认)"
+            )
+            
             # 更新文件树
             self.update_file_tree()
             
@@ -433,30 +462,34 @@ class MainWindow(QMainWindow):
     def refresh_directory(self):
         """刷新工程目录"""
         if self.file_manager.project_directory:
+            # 更新文件树
             self.update_file_tree()
+            
+            # 检测并显示变更文件
+            self.changed_files = self.file_manager.get_changed_files()
             self.update_changed_tree()
     
     def update_file_tree(self):
         """更新文件树"""
         self.file_model.clear()
-        self.file_model.setHorizontalHeaderLabels(['文件'])
+        self.file_model.setHorizontalHeaderLabels(['文件列表'])
         
         if not self.file_manager.project_directory:
             return
-            
-        root = self.file_model.invisibleRootItem()
-        file_tree = self.file_manager.get_file_tree()
-        self._build_tree(root, file_tree)
         
-        # 展开根节点
-        self.file_tree.expandToDepth(0)
-    
-    def _build_tree(self, parent_item: QStandardItem, tree_dict: dict):
-        """递归构建文件树"""
-        for name, value in tree_dict.items():
-            item = QStandardItem(name)
+        # 获取文件树结构
+        tree_dict = self.file_manager.get_file_tree()
+        root = self.file_model.invisibleRootItem()
+        
+        # 构建树形视图
+        self._build_tree(root, tree_dict)
+        self.file_tree.expandAll()
+
+    def _build_tree(self, parent_item, tree_dict):
+        """递归构建树形结构"""
+        for key, value in sorted(tree_dict.items()):
+            item = QStandardItem(key)
             parent_item.appendRow(item)
-            
             if isinstance(value, dict):  # 如果是目录
                 self._build_tree(item, value)
     
@@ -570,7 +603,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "警告", "请先配置测试参数")
                 return
 
-            # 更新保存的文件版本
+            # 异步保存文件版本
             for file in selected_files:
                 self.file_manager.save_current_version(file)
             
@@ -659,3 +692,8 @@ class MainWindow(QMainWindow):
             if isinstance(tab, ResultTabWidget) and tab.server_info['id'] == server_id:
                 tab.update_results(results)
                 break 
+
+    def closeEvent(self, event):
+        """关闭窗口时清理资源"""
+        self.file_manager.stop_save_thread()
+        super().closeEvent(event) 

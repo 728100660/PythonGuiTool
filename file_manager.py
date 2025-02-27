@@ -1,5 +1,7 @@
 import os
-from typing import List, Dict
+import threading
+import queue
+from typing import List, Dict, Optional
 from database import Database
 
 class FileManager:
@@ -7,6 +9,9 @@ class FileManager:
         self.database = database
         self.project_directory = None
         self.result_directory = None
+        self.save_queue = queue.Queue()
+        self.save_thread = None
+        self.is_saving = False
         
     def set_project_directory(self, directory: str):
         """设置工程目录"""
@@ -17,8 +22,15 @@ class FileManager:
         self.result_directory = directory
     
     def get_result_directory(self) -> str:
-        """获取结果存储目录，如果未设置则使用工程目录"""
-        return self.result_directory or self.project_directory
+        """获取结果存储目录，如果未设置则使用默认目录"""
+        if self.result_directory:
+            return self.result_directory
+        elif self.project_directory:
+            # 默认在工程目录同级创建 test_results 目录
+            default_dir = os.path.join(os.path.dirname(self.project_directory), 'test_results')
+            os.makedirs(default_dir, exist_ok=True)
+            return default_dir
+        return None
         
     def get_file_tree(self) -> Dict:
         """获取文件树结构"""
@@ -73,14 +85,44 @@ class FileManager:
 
         return changed_files
         
+    def start_save_thread(self):
+        """启动保存线程"""
+        if self.save_thread is None or not self.save_thread.is_alive():
+            self.is_saving = True
+            self.save_thread = threading.Thread(target=self._save_worker)
+            self.save_thread.daemon = True
+            self.save_thread.start()
+    
+    def _save_worker(self):
+        """文件保存工作线程"""
+        while self.is_saving:
+            try:
+                file_path = self.save_queue.get(timeout=1)  # 1秒超时
+                if file_path == "STOP":
+                    break
+                    
+                if os.path.exists(file_path):
+                    with open(file_path, 'rb') as f:
+                        content = f.read()
+                        self.database.save_file_version(file_path, content)
+                
+                self.save_queue.task_done()
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Error saving file {file_path}: {e}")
+    
+    def stop_save_thread(self):
+        """停止保存线程"""
+        if self.save_thread and self.save_thread.is_alive():
+            self.is_saving = False
+            self.save_queue.put("STOP")
+            self.save_thread.join()
+    
     def save_current_version(self, file_path: str):
-        """保存文件当前版本"""
-        if not os.path.exists(file_path):
-            return
-            
-        with open(file_path, 'rb') as f:
-            content = f.read()
-            self.database.save_file_version(file_path, content)
+        """异步保存文件当前版本"""
+        self.save_queue.put(file_path)
+        self.start_save_thread()
 
     def get_all_files(self) -> List[str]:
         """获取所有文件列表"""
