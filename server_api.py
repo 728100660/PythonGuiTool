@@ -1,6 +1,7 @@
 import json
 import simu_data_get
 from PyQt6.QtCore import QObject, pyqtSignal
+from simu_data_get import SimuData
 import threading
 
 class TestResultListener(QObject):
@@ -42,6 +43,30 @@ class TestResultListener(QObject):
             "results": []
         }
         
+        # 创建汇总数据
+        summary_data = {}
+        if self.accumulated_data['overall']['totalTimes']:
+            summary_data['Overall'] = {}
+            for key, values in self.accumulated_data['overall'].items():
+                if key != 'totalTimes':
+                    summary_data['Overall'][key] = values[-1] if values else 0
+        
+        if self.accumulated_data['FG']['totalTimes']:
+            summary_data['FG'] = {}
+            for key, values in self.accumulated_data['FG'].items():
+                if key != 'totalTimes':
+                    summary_data['FG'][key] = values[-1] if values else 0
+        
+        # 如果有汇总数据，添加汇总文件
+        if summary_data:
+            summary_content = SimuData.print_lab(summary_data)
+            processed_result["results"].append({
+                "file": "Summary.txt",
+                "status": "running",
+                "content": summary_content,
+                "data_info": summary_data
+            })
+
         # 处理 overall 结果
         if self.accumulated_data['overall']['totalTimes']:
             overall_folder = {
@@ -116,8 +141,8 @@ class ServerAPI:
     def __init__(self):
         # 模拟服务器列表数据
         self.mock_servers = [
-            {"id": 1, "name": "测试服务器1", "address": "http://192.168.30.68:8094/"},
-            {"id": 2, "name": "测试服务器2", "address": "http://192.168.30.68:8095/"},
+            {"id": 1, "name": "测试服务器1", "address": "http://192.168.30.74:8094/"},
+            {"id": 2, "name": "测试服务器2", "address": "http://192.168.30.13:8095/"},
             {"id": 3, "name": "测试服务器3", "address": "http://192.168.30.68:8096/"}
         ]
         self.result_listener = TestResultListener()
@@ -201,4 +226,4 @@ class ServerAPI:
         return self.test_results if hasattr(self, 'test_results') else {
             "status": "error",
             "results": []
-        } 
+        }

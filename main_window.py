@@ -696,4 +696,4 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """关闭窗口时清理资源"""
         self.file_manager.stop_save_thread()
-        super().closeEvent(event) 
+        super().closeEvent(event)

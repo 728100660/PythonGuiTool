@@ -454,7 +454,7 @@ class SimuData:
             # 'mgBounsRtp':data['mgBounsRtp'],
         }
 
-        # self.print_lab(data_info)
+        self.print_lab(data_info)
         # if data['totalTimes'] == self.data['times']:
         #     self.printOut()
 
@@ -599,8 +599,8 @@ class SimuData:
                     we[i].append(data_fame[j][i])
                 except IndexError:
                     we[i].append(" ")
-
         print(tabulate(we, headers=head, tablefmt='double_outline'))
+        return tabulate(we, headers=head, tablefmt='double_outline')
 
 
 def run(url, task_info, initial_info, old_game, callback=None, project_path=None):

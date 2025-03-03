@@ -1,9 +1,12 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                           QTreeWidget, QTreeWidgetItem, QSplitter)
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                             QTreeWidget, QTreeWidgetItem, QSplitter, QTextEdit)
 from PyQt6.QtCore import Qt
+from simu_data_get import SimuData
 import os
 from datetime import datetime
 from .result_chart_widget import ResultChartWidget
+from simu_data_get import SimuData
 
 class ResultTabWidget(QWidget):
     """测试结果标签页"""
@@ -12,6 +15,7 @@ class ResultTabWidget(QWidget):
         self.server_info = server_info
         self.results = results
         self.current_chart = None
+        self.current_table = None
         self.res_dir = res_dir
         self.start_time = datetime.now()
         
@@ -41,13 +45,24 @@ class ResultTabWidget(QWidget):
         self.populate_file_tree()
         file_layout.addWidget(self.file_tree)
         
-        # 右侧图表区域
+        # 右侧区域
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        
+        # 图表区域
         self.chart_container = QWidget()
         self.chart_layout = QVBoxLayout(self.chart_container)
+        right_layout.addWidget(self.chart_container)
+        
+        # 表格区域
+        self.table_view = QTextEdit()
+        self.table_view.setReadOnly(True)
+        self.table_view.setFont(QFont("Courier New", 10))
+        right_layout.addWidget(self.table_view)
         
         # 添加到分割器
         splitter.addWidget(file_widget)
-        splitter.addWidget(self.chart_container)
+        splitter.addWidget(right_widget)
         
         # 设置初始大小
         splitter.setSizes([200, 600])
@@ -96,7 +111,16 @@ class ResultTabWidget(QWidget):
             series_data=result_data.get('series_data')
         )
         self.chart_layout.addWidget(self.current_chart)
-    
+        
+        # 显示表格数据
+        if 'data_info' in result_data:
+            table_content = SimuData.print_lab(result_data['data_info'])
+            self.table_view.setText(table_content)
+        else:
+            # 显示普通文本内容
+            self.table_view.setText(result_data['content'])
+        self.file_tree.setCurrentItem(item)
+
     def save_results(self):
         """保存测试结果到文件"""
         # 确保目录存在
@@ -134,6 +158,10 @@ class ResultTabWidget(QWidget):
     
     def update_results(self, results: dict):
         """更新测试结果"""
+        # 保存当前选中的文件名
+        current_item = self.file_tree.currentItem()
+        current_file_name = current_item.text(0) if current_item else None
+        
         self.results = results
         
         # 更新状态标签
@@ -142,9 +170,14 @@ class ResultTabWidget(QWidget):
         # 更新文件树
         self.file_tree.clear()
         self.populate_file_tree()
+        # # 如果当前有选中的图表，更新它
+        # if self.current_chart and self.file_tree.currentItem():
+        #     self.on_file_selected(self.file_tree.currentItem())
+        # 如果之前有选中的文件，找到并重新选中它
+        if current_file_name:
+            items = self.file_tree.findItems(current_file_name, Qt.MatchFlag.MatchExactly | Qt.MatchFlag.MatchRecursive)
+            if items:
+                self.file_tree.setCurrentItem(items[0])
+                self.on_file_selected(items[0])
         
-        # 如果当前有选中的图表，更新它
-        if self.current_chart and self.file_tree.currentItem():
-            self.on_file_selected(self.file_tree.currentItem())
-
         self.save_results()
