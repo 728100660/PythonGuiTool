@@ -29,6 +29,7 @@ class SimuData:
         self.password = '123456'
         self.project_path = project_path
         self.csv_path = os.path.join(project_path, 'stage', 'server_csv')
+        self.excel_path = os.path.join(project_path, 'stage')
         self.script_path = os.path.join(project_path, 'csvScript')
 
     def sent_csv_toweb(self, stop=True):
@@ -89,6 +90,66 @@ class SimuData:
                     print('__' * 20, 'upload success again', '__' * 20)
             else:
                 print(rests.status_code, '----', 'upload fail', '  ', j)
+
+                sys.exit()
+        print('*' * 50, 'upload finished', '*' * 50)
+
+    def sent_exl_toweb(self, stop=True):
+        file_path = self.excel_path
+        self.tranForm_data()
+        if stop:
+            stop = self.url + 'SimulateLineGameController/stop?' + urllib.parse.urlencode({'gameId': self.game_id})
+            stop_ret = requests.post(stop)
+            time.sleep(1)
+            if stop_ret.status_code != 200:
+                print(stop_ret.text)
+                sys.exit()
+            else:
+                time.sleep(10)
+                print('stop sever success', '  ', 'Time: ', stop_ret.headers['Date'])
+
+        post_url = self.url + 'excelConfig/uploadServer'
+        fileobj = {
+            'type': (None, 'SERVER'),
+            'name': (None, 'S' + time.strftime('%Y%m%d%H%M', time.localtime())),
+        }
+        # ret = self.get_new_cookie()[0]
+        new_cookie = 'ds'  # ret.get('name') + '=' + ret.get('value')
+        headers = {
+            'Cookie': new_cookie,
+        }
+        menu_url = self.url + 'menu/get'
+        print(os.path.basename(file_path))
+        a = os.listdir(file_path)
+        for i in a:
+            if str(self.game_id) == [''.join(list(g)) for k, g in groupby(i, key=lambda x: x.isdigit())][0]:
+                file_name = i
+                print('find the file : {}'.format(file_name))
+                break
+        else:
+            print('无法定位文件夹，输入文件夹的位置')
+            file_name = input()
+        file_path = os.path.join(file_path, file_name)
+        with open(file_path, "rb") as file:
+            file_name = file_path.split(os.sep)[-1]
+            fileobj['file'] = (file_name, file)
+            rests = requests.post(post_url, files=fileobj)
+            if rests.status_code == 200:
+                print(file_name, '----', 'upload success')
+            elif rests.status_code == 500:
+                print('\n', '__' * 20, 'renew cookie', '__' * 20)
+                ret = self.get_new_cookie()[0]
+                new_cookie = ret.get('name') + '=' + ret.get('value')
+                print('\n', '__' * 20, 'new_cookie:', new_cookie, '__' * 20)
+                headers['Cookie'] = new_cookie
+                fileobj['file'] = (file_name, open(os.path.join(file_path, file_name), 'rb'))
+                rests = requests.post(post_url, files=fileobj)
+                if rests.status_code == 200:
+                    print(file_name, '----', 'upload success')
+                else:
+                    print('__' * 20, 'upload success again', '__' * 20)
+            else:
+                print(rests.status_code, '----', 'upload fail', '  ', file_name)
 
                 sys.exit()
         print('*' * 50, 'upload finished', '*' * 50)
@@ -177,6 +238,7 @@ class SimuData:
         return io
 
     def tranForm_data(self, type='stage'):
+        return
         type_list = {'stage': 'server_transform-stage.bat', 'system': 'server_transform-system.bat'}
         fold_address = self.script_path
         bat_name = type_list[type]
@@ -547,6 +609,7 @@ def run(url, task_info, initial_info, old_game, callback=None, project_path=None
     axw = SimuData(url=url, game_id=game_id, data=initial_info, project_path=project_path)
 
     axw.sent_csv_toweb()
+    # axw.sent_exl_toweb()
     # axw.sent_csv_toweb_special(file_path='D:\slot\stage\server_csv\关卡模式表', stop=True)
     # axw.simu_Bet(1)
     # for i in range(1000):
