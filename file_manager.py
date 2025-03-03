@@ -1,6 +1,7 @@
 import os
 import threading
 import queue
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Optional
 from database import Database
 
@@ -65,6 +66,7 @@ class FileManager:
             return []
             
         changed_files = []
+        all_file_paths = []
         for root, _, files in os.walk(self.project_directory):
             files = get_show_files(files)
             relative_path = os.path.relpath(root, self.project_directory)
@@ -72,16 +74,32 @@ class FileManager:
             if not is_show_path(relative_path):
                 continue
 
-            for file in files:
-                file_path = os.path.join(root, file)
-                with open(file_path, 'rb') as f:
-                    current_content = f.read()
-                    
-                stored_content = self.database.get_latest_version(file_path)
-                if stored_content is None or stored_content != current_content:
-                    changed_files.append(file_path)
+            all_file_paths.extend([os.path.join(root, file) for file in files])
+
+        self.check_update_change_files(changed_files, all_file_paths)
 
         return changed_files
+
+    def check_update_change_files(self, changed_files, file_paths):
+        # 创建线程池，设置最大线程数为5
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            # 提交所有查询任务
+            future_to_path = {executor.submit(self.database.get_latest_version, path): path for path in file_paths}
+
+            # 按完成顺序处理结果
+            for future in as_completed(future_to_path):
+                file_path = future_to_path[future]
+                try:
+                    stored_content = future.result()  # 获取查询结果
+
+                    with open(file_path, 'rb') as f:
+                        current_content = f.read()
+
+                    stored_content = self.database.get_latest_version(file_path)
+                    if stored_content is None or stored_content != current_content:
+                        changed_files.append(file_path)
+                except Exception as e:
+                    print(f"Error processing {stored_content}: {e}")
         
     def start_save_thread(self):
         """启动保存线程"""
@@ -146,7 +164,7 @@ def get_show_dirs(dirs):
 
 
 def is_show_path(path):
-    return 'stage' not in path
+    return 'stage' in path and 'server_csv' in path
 
 
 def get_show_files(files):
