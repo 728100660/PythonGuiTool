@@ -82,30 +82,30 @@ class ResultChartWidget(QWidget):
         layout.addWidget(self.chart_view)
         
         # 添加表格显示
-        self.table_view = QTextEdit()
-        self.table_view.setReadOnly(True)
-        self.table_view.setFont(QFont("Courier New", 10))  # 使用更大的字体
-        self.table_view.setStyleSheet("""
-            QTextEdit {
-                background-color: white;
-                border: 1px solid #ccc;
-            }
-        """)
-        
-        if series_data:
-            # 生成表格内容
-            table_content = []
-            table_content.append(f"{'次数':<10}\t{series_data['name']:<15}")  # 表头
-            table_content.append("-" * 30)  # 分隔线
-            
-            for x, y in series_data['data']:
-                table_content.append(f"{int(x):<10}\t{y:<15.2f}")
-            
-            self.table_view.setText("\n".join(table_content))
-        
-        self.table_view.setMinimumHeight(150)
-        self.table_view.setMaximumHeight(200)
-        layout.addWidget(self.table_view)
+        # self.table_view = QTextEdit()
+        # self.table_view.setReadOnly(True)
+        # self.table_view.setFont(QFont("Courier New", 10))  # 使用更大的字体
+        # self.table_view.setStyleSheet("""
+        #     QTextEdit {
+        #         background-color: white;
+        #         border: 1px solid #ccc;
+        #     }
+        # """)
+        #
+        # if series_data:
+        #     # 生成表格内容
+        #     table_content = []
+        #     table_content.append(f"{'次数':<10}\t{series_data['name']:<15}")  # 表头
+        #     table_content.append("-" * 30)  # 分隔线
+        #
+        #     for x, y in series_data['data']:
+        #         table_content.append(f"{int(x):<10}\t{y:<15.2f}")
+        #
+        #     self.table_view.setText("\n".join(table_content))
+        #
+        # self.table_view.setMinimumHeight(150)
+        # self.table_view.setMaximumHeight(200)
+        # layout.addWidget(self.table_view)
         
         # 连接鼠标滚轮事件
         self.chart_view.wheelEvent = self.handle_wheel_event
