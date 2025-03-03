@@ -449,7 +449,7 @@ class MainWindow(QMainWindow):
             self.update_file_tree()
             
             # 检测并显示变更文件
-            self.changed_files = self.file_manager.get_changed_files()
+            # self.changed_files = self.file_manager.get_changed_files()
             self.update_changed_tree()
 
     def select_result_directory(self):
@@ -466,7 +466,7 @@ class MainWindow(QMainWindow):
             self.update_file_tree()
             
             # 检测并显示变更文件
-            self.changed_files = self.file_manager.get_changed_files()
+            # self.changed_files = self.file_manager.get_changed_files()
             self.update_changed_tree()
     
     def update_file_tree(self):
