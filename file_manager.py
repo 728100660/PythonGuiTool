@@ -40,13 +40,12 @@ class FileManager:
         tree = {}
         for root, dirs, files in os.walk(self.project_directory):
             # 跳过隐藏文件和目录和res目录
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            files = [f for f in files if not f.startswith('.')  and f.endswith('.csv')]
+            dirs[:] = get_show_dirs(dirs)
+            files = get_show_files(files)
             
             relative_path = os.path.relpath(root, self.project_directory)
             
-            # 只看stage\server_csv目录下的文件
-            if 'stage' not in relative_path or 'server_csv' not in relative_path:
+            if not is_show_path(relative_path):
                 continue
             current_level = tree
             
@@ -67,11 +66,10 @@ class FileManager:
             
         changed_files = []
         for root, _, files in os.walk(self.project_directory):
-            files = [f for f in files if not f.startswith('.')  and f.endswith('.csv')]
+            files = get_show_files(files)
             relative_path = os.path.relpath(root, self.project_directory)
 
-            # 只看stage\server_csv目录下的文件
-            if 'stage' not in relative_path or 'server_csv' not in relative_path:
+            if not is_show_path(relative_path):
                 continue
 
             for file in files:
@@ -131,14 +129,25 @@ class FileManager:
         
         all_files = []
         for root, _, files in os.walk(self.project_directory):
-            files = [f for f in files if not f.startswith('.') and f.endswith('.csv')]
+            files = get_show_files(files)
             relative_path = os.path.relpath(root, self.project_directory)
 
-            # 只看stage\server_csv目录下的文件
-            if 'stage' not in relative_path or 'server_csv' not in relative_path:
+            if not is_show_path(relative_path):
                 continue
             for file in files:
                 file_path = os.path.join(root, file)
                 all_files.append(file_path)
         
-        return all_files 
+        return all_files
+
+
+def get_show_dirs(dirs):
+    return [d for d in dirs if not d.startswith('.')]
+
+
+def is_show_path(path):
+    return 'stage' not in path
+
+
+def get_show_files(files):
+    return [f for f in files if not f.startswith('.') and f.endswith('.csv')]
