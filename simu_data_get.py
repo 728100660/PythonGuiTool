@@ -238,7 +238,6 @@ class SimuData:
         return io
 
     def tranForm_data(self, type='stage'):
-        return
         type_list = {'stage': 'server_transform-stage.bat', 'system': 'server_transform-system.bat'}
         fold_address = self.script_path
         bat_name = type_list[type]
