@@ -605,6 +605,9 @@ class SimuData:
 
 def run(url, task_info, initial_info, old_game, callback=None, project_path=None):
     game_id = initial_info["gameId"]
+    if game_id != task_info["gameId"] or game_id != old_game["gameId"]:
+        print("！！！！！！！！请确保所有配置的game_id一致，默认取task_info的gameId！！！！！！！！")
+        print(f"当前gameId为{game_id}")
     axw = SimuData(url=url, game_id=game_id, data=initial_info, project_path=project_path)
 
     # axw.sent_csv_toweb()
@@ -930,12 +933,12 @@ def old_game_check():
 
 
 if __name__ == '__main__':
-    game_id = 162
-    task_info = {
+    g_game_id = 162
+    g_task_info = {
         'betMoney': 2000000,
         'betType': 0,
         'gameActive': 1,
-        'gameId': game_id,
+        'gameId': g_game_id,
         # 'group':30,
         # 'chooseIndex':0,
         'initLevel': 650,
@@ -943,11 +946,11 @@ if __name__ == '__main__':
         'threadNum': 1,
         'times': 10000,
     }
-    initial_info = {
+    g_initial_info = {
         'betMoney': 1000000000,
         'betType': 0,
         'gameActive': 1,
-        'gameId': game_id,
+        'gameId': g_game_id,
         'brokenInitialIndex': 60,
         'ex': 0.9,
         'unlockFunction': True,
@@ -959,10 +962,10 @@ if __name__ == '__main__':
         'threadNum': 8,
         'times': 50000000,
     }
-    old_game = {
+    g_old_game = {
         'betMoney': 10000,
         'betTypeEnum': 'REGULAR',
-        'gameId': game_id,
+        'gameId': g_game_id,
         'gameActive': 1,
         'initMoney': 10000000000,
         'level': 200,
@@ -973,8 +976,9 @@ if __name__ == '__main__':
     }
     # url = 'http://192.168.30.13:8095/'
     # url = 'http://192.168.30.74:8094/'
-    url = 'http://192.168.30.68:8096/'
-    run(url, task_info, initial_info, old_game, callback=None, project_path="D:\\slot\\")
+    g_url = 'http://192.168.30.68:8096/'
+    run(g_url, g_task_info, g_initial_info, g_old_game,
+        callback=None, project_path="D:\\slot\\")
     # old_game_check()
     # task_run(1)
     # rtp_check()

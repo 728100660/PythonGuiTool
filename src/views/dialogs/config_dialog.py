@@ -15,7 +15,7 @@ class ConfigDialog(QDialog):
             'betMoney': 2000000,
             'betType': 0,
             'gameActive': 1,
-            'gameId': 1,
+            'gameId': 162,
             'initLevel': 650,
             'initMoney': 10000000000000000000,
             'threadNum': 1,
@@ -42,7 +42,7 @@ class ConfigDialog(QDialog):
         self.old_game = {
             'betMoney': 10000,
             'betTypeEnum': 'REGULAR',
-            'gameId': 1,
+            'gameId': 162,
             'gameActive': 1,
             'initMoney': 10000000000,
             'level': 200,
