@@ -164,8 +164,8 @@ def get_show_dirs(dirs):
 
 
 def is_show_path(path):
-    return 'stage' in path and 'server_csv' in path
+    return 'stage' in path
 
 
 def get_show_files(files):
-    return [f for f in files if not f.startswith('.') and f.endswith('.csv')]
+    return [f for f in files if not f.startswith('.') and f.endswith('.xlsx')]
