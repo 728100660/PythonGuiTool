@@ -143,7 +143,8 @@ class ServerAPI:
         self.mock_servers = [
             {"id": 1, "name": "测试服务器1", "address": "http://192.168.30.74:8094/"},
             {"id": 2, "name": "测试服务器2", "address": "http://192.168.30.13:8095/"},
-            {"id": 3, "name": "测试服务器3", "address": "http://192.168.30.68:8096/"}
+            {"id": 3, "name": "测试服务器3", "address": "http://192.168.30.68:8096/"},
+            {"id": 4, "name": "开发环境", "address": "http://192.168.30.121:8093/"}
         ]
         self.result_listener = TestResultListener()
     

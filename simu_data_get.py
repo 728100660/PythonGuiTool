@@ -96,7 +96,6 @@ class SimuData:
 
     def sent_exl_toweb(self, stop=True):
         file_path = self.excel_path
-        self.tranForm_data()
         if stop:
             stop = self.url + 'SimulateLineGameController/stop?' + urllib.parse.urlencode({'gameId': self.game_id})
             stop_ret = requests.post(stop)
@@ -238,6 +237,7 @@ class SimuData:
         return io
 
     def tranForm_data(self, type='stage'):
+        return
         type_list = {'stage': 'server_transform-stage.bat', 'system': 'server_transform-system.bat'}
         fold_address = self.script_path
         bat_name = type_list[type]
@@ -607,8 +607,8 @@ def run(url, task_info, initial_info, old_game, callback=None, project_path=None
     game_id = initial_info["gameId"]
     axw = SimuData(url=url, game_id=game_id, data=initial_info, project_path=project_path)
 
-    axw.sent_csv_toweb()
-    # axw.sent_exl_toweb()
+    # axw.sent_csv_toweb()
+    axw.sent_exl_toweb()
     # axw.sent_csv_toweb_special(file_path='D:\slot\stage\server_csv\关卡模式表', stop=True)
     # axw.simu_Bet(1)
     # for i in range(1000):
