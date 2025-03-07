@@ -1,4 +1,6 @@
 import json
+from collections import defaultdict
+
 import simu_data_get
 from PyQt6.QtCore import QObject, pyqtSignal
 from simu_data_get import SimuData
@@ -10,18 +12,13 @@ class TestResultListener(QObject):
 
     def __init__(self):
         super().__init__()
-        self.accumulated_data = {
-            'overall': {'totalTimes': []},
-            'FG': {'totalTimes': []}
-        }
+        self.accumulated_data = defaultdict(lambda: defaultdict(list))
 
     def on_result_update(self, result):
         """处理结果更新"""
         # 累积数据
-        if 'overall' in result:
-            self._accumulate_data('overall', result['overall'])
-        if 'FG' in result:
-            self._accumulate_data('FG', result['FG'])
+        for category, data in result.items():
+            self._accumulate_data(category, data)
         
         self.result_updated.emit(self._process_result())
     
@@ -42,21 +39,15 @@ class TestResultListener(QObject):
             "status": "running",
             "results": []
         }
-        
+
         # 创建汇总数据
         summary_data = {}
-        if self.accumulated_data['overall']['totalTimes']:
-            summary_data['Overall'] = {}
-            for key, values in self.accumulated_data['overall'].items():
-                if key != 'totalTimes':
-                    summary_data['Overall'][key] = values[-1] if values else 0
-        
-        if self.accumulated_data['FG']['totalTimes']:
-            summary_data['FG'] = {}
-            for key, values in self.accumulated_data['FG'].items():
-                if key != 'totalTimes':
-                    summary_data['FG'][key] = values[-1] if values else 0
-        
+        for category, data in self.accumulated_data.items():
+            summary_data[category] = {}
+            for key, values in data.items():
+                if key == 'totalTimes':
+                    continue
+                summary_data[category][key] = values[-1] if values else 0
         # 如果有汇总数据，添加汇总文件
         if summary_data:
             summary_content = SimuData.print_lab(summary_data)
@@ -67,82 +58,43 @@ class TestResultListener(QObject):
                 "data_info": summary_data
             })
 
-        # 处理 overall 结果
-        if self.accumulated_data['overall']['totalTimes']:
-            overall_folder = {
-                "name": "Overall Results",
+        # 处理结果
+        for category, data in self.accumulated_data.items():
+            folder = {
+                "name": f"{category} Results",
                 "type": "folder",
                 "children": []
             }
-            
-            overall = self.accumulated_data['overall']
-            times = overall['totalTimes']
-            
-            for key, values in overall.items():
-                if key != 'totalTimes':
-                    series_data = {
-                        "name": key,
-                        "data": list(zip(times, values))
-                    }
-                    
-                    # 生成表格内容
-                    table_rows = []
-                    table_rows.append(f"{'次数':<10}\t{key:<15}")
-                    table_rows.append("-" * 30)
-                    for t, v in zip(times, values):
-                        table_rows.append(f"{int(t):<10}\t{float(v):<15.2f}")
-                    
-                    overall_folder["children"].append({
-                        "file": f"{key}.txt",
-                        "status": "running",
-                        "content": "\n".join(table_rows),
-                        "series_data": series_data
-                    })
-            
-            processed_result["results"].append(overall_folder)
-        
-        # 处理 FG 结果
-        if self.accumulated_data['FG']['totalTimes']:
-            fg_folder = {
-                "name": "FG Results",
-                "type": "folder",
-                "children": []
-            }
-            
-            fg = self.accumulated_data['FG']
-            times = self.accumulated_data['FG']['totalTimes']
-            
-            for key, values in fg.items():
-                if key != 'totalTimes':
-                    series_data = {
-                        "name": key,
-                        "data": list(zip(times, values))
-                    }
-                    
-                    # 生成表格内容
-                    table_rows = []
-                    table_rows.append(f"{'次数':<10}\t{key:<15}")
-                    table_rows.append("-" * 30)
-                    for t, v in zip(times, values):
-                        table_rows.append(f"{int(t):<10}\t{float(v):<15.2f}")
-                    
-                    fg_folder["children"].append({
-                        "file": f"{key}.txt",
-                        "status": "running",
-                        "content": "\n".join(table_rows),
-                        "series_data": series_data
-                    })
-            
-            processed_result["results"].append(fg_folder)
+            times = data['totalTimes']
+
+            for key, values in data.items():
+                if key == 'totalTimes':
+                    continue
+                series_data = {
+                    "name": key,
+                    "data": list(zip(times, values))
+                }
+
+                # 生成表格内容
+                table_rows = []
+                table_rows.append(f"{'次数':<10}\t{key:<15}")
+                table_rows.append("-" * 30)
+                for t, v in zip(times, values):
+                    table_rows.append(f"{int(t):<10}\t{float(v):<15.2f}")
+
+                folder["children"].append({
+                    "file": f"{key}.txt",
+                    "status": "running",
+                    "content": "\n".join(table_rows),
+                    "series_data": series_data
+                })
+            processed_result["results"].append(folder)
         
         return processed_result
 
     def clear_results(self):
         """清空累积的结果数据"""
-        self.accumulated_data = {
-            'overall': {'totalTimes': []},
-            'FG': {'totalTimes': []}
-        }
+        self.accumulated_data = defaultdict(lambda: defaultdict(list))
 
 class ServerAPI:
     def __init__(self):
@@ -185,47 +137,6 @@ class ServerAPI:
         self.test_thread.daemon = True
         self.test_thread.start()
         return True
-    
-    def _process_test_results(self, results: dict) -> dict:
-        """处理测试结果数据"""
-        processed_results = {
-            "status": "success",
-            "results": []
-        }
-        
-        # 处理总体结果
-        if "overall" in results:
-            overall = results["overall"]
-            content_lines = []
-            
-            # 提取所有数据点
-            data_points = []
-            for key, value in overall.items():
-                if key != "totalTimes":  # 跳过totalTimes，它将作为X轴
-                    data_points.append({
-                        "name": key,
-                        "data": list(zip(overall["totalTimes"], value))
-                    })
-            
-            # 生成结果文本
-            for point in data_points[0]["data"]:  # 使用第一个数据系列的点数
-                total_times = point[0]
-                line_parts = [f"{total_times}次"]
-                for series in data_points:
-                    value = next(p[1] for p in series["data"] if p[0] == total_times)
-                    line_parts.append(f"{series['name']}为{value}")
-                content_lines.append("，".join(line_parts))
-            
-            # 添加到结果列表
-            for i, series in enumerate(data_points):
-                processed_results["results"].append({
-                    "file": f"overall_{series['name']}.txt",
-                    "status": "passed",
-                    "content": "\n".join(content_lines),
-                    "series_data": series
-                })
-        
-        return processed_results
 
     def get_server_config(self, server_id: int) -> dict:
         """通过id获取服务器配置"""

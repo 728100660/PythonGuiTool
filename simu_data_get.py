@@ -406,12 +406,23 @@ class SimuData:
             plt.legend()
             plt.show()
 
+    def is_formated_bet_data(self, bet_data):
+        if not isinstance(bet_data, dict):
+            return False
+        for key, data in bet_data.items():
+            if not isinstance(data, dict):
+                return False
+        return True
+
     def serverBet_Data_print(self, type=None):
         server_bet_data = self.simu_serverBet(type)
         key = (f"SimulateBetKey(groupId={self.data.get('group', 0)}, betType={self.data['betType']}, "
                f"gameActive={self.data['gameActive']}, unlockFunction={'true' if self.data['unlockFunction'] else 'false'})")
         data = server_bet_data[key]
         # data = self.simu_serverBet(type)["LongLongType(m_Long1=0, m_Long2=1)"]
+        # 如果服务器格式化了返回结果则使用服务器的，否则使用默认的格式化方式返回结果
+        if self.is_formated_bet_data(bet_data=data):
+            return data
         data_info = {
             'overall': {
                 'totalTimes': data['totalTimes'],
@@ -454,10 +465,9 @@ class SimuData:
             # 'mgBounsRtp':data['mgBounsRtp'],
         }
 
-        self.print_lab(data_info)
+        # self.print_lab(data_info)
         # if data['totalTimes'] == self.data['times']:
         #     self.printOut()
-
         return data_info
 
     def printOut(self):
