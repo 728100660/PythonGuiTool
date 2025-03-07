@@ -592,9 +592,11 @@ class MainWindow(QMainWindow):
         # 获取所有变更文件
         changed_files = self.file_manager.get_changed_files()
         
-        # 异步保存文件版本
-        for file in changed_files:
-            self.file_manager.save_current_version(file)
+        # 断开之前的信号连接
+        try:
+            self.server_api.result_listener.result_updated.disconnect()
+        except:
+            pass  # 如果没有连接，忽略错误
         
         # 创建结果标签页
         initial_results = {"status": "starting", "results": []}

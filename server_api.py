@@ -137,6 +137,13 @@ class TestResultListener(QObject):
         
         return processed_result
 
+    def clear_results(self):
+        """清空累积的结果数据"""
+        self.accumulated_data = {
+            'overall': {'totalTimes': []},
+            'FG': {'totalTimes': []}
+        }
+
 class ServerAPI:
     def __init__(self):
         # 模拟服务器列表数据
@@ -157,6 +164,9 @@ class ServerAPI:
     def update_config(self, server_id: int, files: list, test_config: dict,
                       project_path: str) -> bool:
         """更新服务器配置并启动测试"""
+        # 清空之前的结果
+        self.result_listener.clear_results()
+        
         url = self.get_server_config(server_id)["address"]
         task_info = test_config.get("task_info", {})
         initial_info = test_config.get("initial_info", {})
@@ -240,7 +250,7 @@ class ServerAPI:
         if self.test_thread and self.test_thread.is_alive():
             simu_data_get.stop_bet(url, game_id)  # 调用停止接口
             simu_data_get.set_thread_stop_flag(1)
-            self.test_thread.join(timeout=1)  # 等待线程结束
+            self.test_thread.join()  # 等待线程结束
             self.test_thread = None
             simu_data_get.set_thread_stop_flag(0)
         

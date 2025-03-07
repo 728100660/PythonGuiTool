@@ -627,12 +627,12 @@ def run(url, task_info, initial_info, old_game, callback=None, project_path=None
     global g_run_forever
     for i in range(5000):
         if not g_run_forever:
-            return
+            break
         time.sleep(3)
         data = axw.serverBet_Data_print()
         if callback:
             callback(data)
-    g_run_forever = 1
+    set_thread_stop_flag(0)
 
     # a = axw.simu_OldGame(1)
     # for i in range(5000):
