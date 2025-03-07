@@ -147,6 +147,7 @@ class ServerAPI:
             {"id": 4, "name": "开发环境", "address": "http://192.168.30.121:8093/"}
         ]
         self.result_listener = TestResultListener()
+        self.test_thread = None  # 添加线程引用
     
     def get_server_list(self) -> list:
         """获取服务器列表（预留接口）"""
@@ -169,11 +170,12 @@ class ServerAPI:
                 project_path=project_path
             )
         
-        thread = threading.Thread(target=run_test)
-        thread.daemon = True
-        thread.start()
+        # 保存线程引用
+        self.test_thread = threading.Thread(target=run_test)
+        self.test_thread.daemon = True
+        self.test_thread.start()
         return True
-
+    
     def _process_test_results(self, results: dict) -> dict:
         """处理测试结果数据"""
         processed_results = {
@@ -230,10 +232,18 @@ class ServerAPI:
         }
 
     def stop_test(self, server_id: int, game_id: int) -> bool:
-        """停止测试（预留接口）"""
+        """停止测试"""
         url = self.get_server_config(server_id)["address"]
         print(f"停止服务器 {server_id} 的测试")
-        simu_data_get.stop_bet(url, game_id)
+        
+        # 停止测试线程
+        if self.test_thread and self.test_thread.is_alive():
+            simu_data_get.stop_bet(url, game_id)  # 调用停止接口
+            simu_data_get.set_thread_stop_flag(1)
+            self.test_thread.join(timeout=1)  # 等待线程结束
+            self.test_thread = None
+            simu_data_get.set_thread_stop_flag(0)
+        
         return True
 
     def get_server_name(self, server_id):

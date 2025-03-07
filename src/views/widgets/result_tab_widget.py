@@ -199,6 +199,21 @@ class ResultTabWidget(QWidget):
 
     def closeEvent(self, event):
         """关闭事件"""
-        # 调用停止接口
-        self.server_api.stop_test(self.server_info['id'], self.config.get("gameId"))
+        print("关闭窗口")
+        try:
+            # 调用停止接口
+            if self.config and "gameId" in self.config:
+                self.server_api.stop_test(self.server_info['id'], self.config["gameId"])
+        except Exception as e:
+            print(f"Error stopping test: {e}")
         super().closeEvent(event)
+
+    def close(self):
+        """关闭标签页"""
+        print("关闭标签页")
+        try:
+            # 调用停止接口
+            if self.config and "gameId" in self.config:
+                self.server_api.stop_test(self.server_info['id'], self.config["gameId"])
+        except Exception as e:
+            print(f"Error stopping test: {e}")

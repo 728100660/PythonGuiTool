@@ -254,53 +254,7 @@ class MainWindow(QMainWindow):
         # 创建水平分割器
         h_splitter = QSplitter(Qt.Orientation.Horizontal)
         
-        # 左侧面板 - 服务器列表
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(10, 10, 10, 10)  # 设置边距
-        
-        # 服务器列表标题和刷新按钮
-        server_header = QWidget()
-        server_header_layout = QHBoxLayout(server_header)
-        server_header_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 使用小字体的标签
-        server_label = QLabel("服务器列表")
-        server_label.setStyleSheet("font-size: 12px; font-weight: bold;")
-        
-        # 使用小按钮
-        self.refresh_servers_btn = QPushButton("刷新")
-        self.refresh_servers_btn.setMaximumWidth(60)
-        self.refresh_servers_btn.setStyleSheet("font-size: 12px;")
-        
-        server_header_layout.addWidget(server_label)
-        server_header_layout.addStretch()  # 添加弹性空间
-        server_header_layout.addWidget(self.refresh_servers_btn)
-        left_layout.addWidget(server_header)
-        
-        # 服务器选择区域
-        server_group = QGroupBox()
-        server_layout = QVBoxLayout()
-        server_layout.setSpacing(8)  # 设置按钮间距
-        server_layout.setContentsMargins(5, 5, 5, 5)  # 设置内边距
-        self.server_buttons = QButtonGroup(self)
-        
-        # 添加服务器单选按钮
-        for server in self.server_api.get_server_list():
-            radio = QRadioButton(f"{server['name']} ({server['address']})")
-            radio.setStyleSheet("font-size: 12px; margin: 2px 0px;")  # 设置按钮样式
-            radio.setProperty('server_id', server['id'])
-            self.server_buttons.addButton(radio)
-            server_layout.addWidget(radio)
-        
-        server_layout.addStretch()  # 添加弹性空间，使按钮靠上对齐
-        server_group.setLayout(server_layout)
-        left_layout.addWidget(server_group)
-        
-        # 将左侧面板添加到分割器
-        h_splitter.addWidget(left_panel)
-        
-        # 中间面板 - 文件列表和变更文件
+        # 中间面板 - 配置和文件列表
         middle_panel = QWidget()
         middle_layout = QVBoxLayout(middle_panel)
         middle_layout.setContentsMargins(0, 0, 0, 0)
@@ -329,11 +283,12 @@ class MainWindow(QMainWindow):
         result_dir_layout.addWidget(self.current_res_dir_label)
         result_dir_layout.addStretch()
         dir_layout.addLayout(result_dir_layout)
-        
+
         middle_layout.addWidget(dir_area)
-        
+
         # 在文件树上方添加配置区域
         config_group = QGroupBox("测试配置")
+        self.config_group = config_group
         config_layout = QVBoxLayout()
         
         # 配置类型选择
@@ -350,9 +305,18 @@ class MainWindow(QMainWindow):
         self.edit_config_btn = QPushButton("编辑配置")
         config_btn_layout.addWidget(self.edit_config_btn)
         config_layout.addLayout(config_btn_layout)
-        
+
+        # 服务器列表
+        server_label = QLabel("服务器列表")
+        server_label.setStyleSheet("font-size: 12px; font-weight: bold;")
+        config_layout.addWidget(server_label)
+
         config_group.setLayout(config_layout)
         middle_layout.addWidget(config_group)
+
+        # 服务器按钮组
+        self.server_buttons = QButtonGroup(self)
+        self.refresh_servers()  # 初始化服务器列表
         
         # 创建垂直分割器用于文件树和变更文件树
         v_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -418,7 +382,7 @@ class MainWindow(QMainWindow):
         self.select_dir_btn.clicked.connect(self.select_project_directory)
         self.refresh_dir_btn.clicked.connect(self.refresh_directory)
         self.res_dir_btn.clicked.connect(self.select_result_directory)
-        self.refresh_servers_btn.clicked.connect(self.refresh_servers)
+        # self.refresh_servers_btn.clicked.connect(self.refresh_servers)
         self.submit_btn.clicked.connect(self.submit_changes)
         self.server_buttons.buttonClicked.connect(self.on_server_selected)
         
@@ -701,6 +665,12 @@ class MainWindow(QMainWindow):
     
     def close_result_tab(self, index: int):
         """关闭结果标签页"""
+        # 获取要关闭的标签页
+        tab = self.result_tabs.widget(index)
+        if isinstance(tab, ResultTabWidget):
+            # 调用关闭方法
+            tab.close()
+        # 移除标签页
         self.result_tabs.removeTab(index)
     
     def view_result_file(self, file_path: str):

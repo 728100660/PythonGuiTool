@@ -624,11 +624,15 @@ def run(url, task_info, initial_info, old_game, callback=None, project_path=None
     #
 
     a = axw.simu_serverBet(1)
+    global g_run_forever
     for i in range(5000):
+        if not g_run_forever:
+            return
         time.sleep(3)
         data = axw.serverBet_Data_print()
         if callback:
             callback(data)
+    g_run_forever = 1
 
     # a = axw.simu_OldGame(1)
     # for i in range(5000):
@@ -944,6 +948,14 @@ def stop_bet(url, game_id):
         print(stop_ret.text)
         sys.exit()
 
+def set_thread_stop_flag(flag=1):
+    global g_run_forever
+    if flag == 1:
+        g_run_forever = 0
+    else:
+        g_run_forever = 1
+
+g_run_forever = 1       # 程序是否一直循环
 
 if __name__ == '__main__':
     g_game_id = 162
