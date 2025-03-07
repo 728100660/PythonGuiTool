@@ -157,9 +157,9 @@ class ServerAPI:
                       project_path: str) -> bool:
         """更新服务器配置并启动测试"""
         url = self.get_server_config(server_id)["address"]
-        task_info = test_config["task_info"]
-        initial_info = test_config["initial_info"]
-        old_game = test_config["old_game"]
+        task_info = test_config.get("task_info", {})
+        initial_info = test_config.get("initial_info", {})
+        old_game = test_config.get("old_game", {})
         
         # 在新线程中运行测试
         def run_test():

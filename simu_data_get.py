@@ -604,10 +604,13 @@ class SimuData:
 
 
 def run(url, task_info, initial_info, old_game, callback=None, project_path=None):
-    game_id = initial_info["gameId"]
-    if game_id != task_info["gameId"] or game_id != old_game["gameId"]:
+    game_id = initial_info.get("gameId")
+    if game_id != task_info.get("gameId") or game_id != old_game.get("gameId"):
         print("！！！！！！！！请确保所有配置的game_id一致，默认取task_info的gameId！！！！！！！！")
         print(f"当前gameId为{game_id}")
+    if not game_id:
+        print(f"!!!!!!!!!!!!!!错误的gameId{game_id}!!!!!!!!!!!")
+        return
     axw = SimuData(url=url, game_id=game_id, data=initial_info, project_path=project_path)
 
     # axw.sent_csv_toweb()

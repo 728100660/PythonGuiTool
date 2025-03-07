@@ -2,6 +2,7 @@ import sqlite3
 import os
 import hashlib
 from datetime import datetime
+import json
 
 class Database:
     def __init__(self):
@@ -32,6 +33,17 @@ class Database:
                     name TEXT NOT NULL,
                     address TEXT NOT NULL,
                     status TEXT DEFAULT 'active'
+                )
+            ''')
+            
+            # 创建配置表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS test_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    config_type TEXT NOT NULL,  -- 'task_info', 'initial_info', 'old_game'
+                    config_data TEXT NOT NULL,
+                    is_selected INTEGER DEFAULT 0,  -- 是否被选中
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             
@@ -68,4 +80,49 @@ class Database:
                 "SELECT hash, timestamp FROM file_versions WHERE file_path = ? ORDER BY timestamp DESC",
                 (file_path,)
             )
-            return cursor.fetchall() 
+            return cursor.fetchall()
+
+    def save_config(self, config_type: str, config_data: dict, is_selected: bool = False):
+        """保存测试配置，无则新增，有则更新"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # 检查是否已存在该类型的配置
+            cursor.execute(
+                "SELECT id FROM test_configs WHERE config_type = ?",
+                (config_type,)
+            )
+            existing = cursor.fetchone()
+            
+            if existing:
+                # 更新现有配置
+                cursor.execute(
+                    "UPDATE test_configs SET config_data = ?, is_selected = ?, timestamp = CURRENT_TIMESTAMP WHERE config_type = ?",
+                    (json.dumps(config_data), int(is_selected), config_type)
+                )
+            else:
+                # 插入新配置
+                cursor.execute(
+                    "INSERT INTO test_configs (config_type, config_data, is_selected) VALUES (?, ?, ?)",
+                    (config_type, json.dumps(config_data), int(is_selected))
+                )
+            
+            if is_selected:
+                # 取消其他同类型配置的选中状态
+                cursor.execute(
+                    "UPDATE test_configs SET is_selected = 0 WHERE config_type = ? AND id != ?",
+                    (config_type, cursor.lastrowid if not existing else existing[0])
+                )
+            conn.commit()
+
+    def get_selected_configs(self) -> dict:
+        """获取当前选中的配置"""
+        configs = {}
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT config_type, config_data FROM test_configs WHERE is_selected = 1"
+            )
+            for config_type, config_data in cursor.fetchall():
+                configs[config_type] = json.loads(config_data)
+        return configs 

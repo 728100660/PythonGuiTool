@@ -27,11 +27,11 @@ class ResultChartWidget(QWidget):
         
         if series_data:
             # 使用系列数据创建图表
-            series = QSplineSeries()
-            series.setName(series_data["name"])
+            self.series = QSplineSeries()
+            self.series.setName(series_data["name"])
             pen = QPen(QColor("#1f77b4"))
             pen.setWidth(3)
-            series.setPen(pen)
+            self.series.setPen(pen)
             
             # 添加数据点
             points = []
@@ -41,14 +41,14 @@ class ResultChartWidget(QWidget):
                 points.append(QPointF(float(x), float(y)))  # 确保转换为浮点数
                 max_x = max(max_x, float(x))
                 max_y = max(max_y, float(y))
-            series.replace(points)
+            self.series.replace(points)
             
             # 保存初始范围
             self.initial_x_range = (0, max_x * 1.1)
             self.initial_y_range = (0, max_y * 1.1)
             
             # 添加系列到图表
-            self.chart.addSeries(series)
+            self.chart.addSeries(self.series)
             
             # 创建坐标轴
             self.axis_x = QValueAxis()
@@ -70,8 +70,8 @@ class ResultChartWidget(QWidget):
             self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
             self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
             
-            series.attachAxis(self.axis_x)
-            series.attachAxis(self.axis_y)
+            self.series.attachAxis(self.axis_x)
+            self.series.attachAxis(self.axis_y)
         
         # 创建图表视图
         self.chart_view = QChartView(self.chart)
@@ -159,3 +159,30 @@ class ResultChartWidget(QWidget):
             wins = int(match.group(2))
             data_points.append((total, wins))
         return sorted(data_points)  # 按总次数排序 
+
+    def update_chart(self, series_data):
+        """更新图表数据"""
+        if not series_data:
+            return
+        
+        # 获取当前视图范围
+        current_x_max = self.axis_x.max()
+        
+        # 检查是否需要缩放
+        new_x_max = max(x for x, _ in series_data['data'])
+        if new_x_max > current_x_max:
+            # 计算新的缩放比例
+            scale = current_x_max / new_x_max
+            new_x_range = (0, new_x_max * 1.1)  # 留出10%的空间
+            
+            # 更新X轴范围
+            self.axis_x.setRange(*new_x_range)
+            
+            # 同步更新Y轴范围
+            new_y_max = max(y for _, y in series_data['data'])
+            self.axis_y.setRange(0, new_y_max * 1.1)
+        
+        # 更新数据点
+        self.series.clear()
+        points = [QPointF(float(x), float(y)) for x, y in series_data['data']]
+        self.series.replace(points) 

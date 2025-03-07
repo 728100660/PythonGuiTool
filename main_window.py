@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QPushButton, QTreeView, QFileDialog, QLabel,
                            QTextEdit, QDialog, QCheckBox, QScrollArea,
                            QGroupBox, QMessageBox, QTabWidget, QListWidget,
-                           QSplitter)
+                           QSplitter, QButtonGroup, QRadioButton)
 from PyQt6.QtCore import Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QPainter
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
@@ -11,6 +11,7 @@ import re
 from file_manager import FileManager
 from server_api import ServerAPI
 from src.views.widgets.result_tab_widget import ResultTabWidget
+from src.views.dialogs.config_dialog import ConfigDialog
 
 class FileViewDialog(QDialog):
     """文件查看对话框"""
@@ -37,104 +38,6 @@ class FileViewDialog(QDialog):
                 self.text_edit.setText(content)
         except Exception as e:
             self.text_edit.setText(f"无法读取文件内容: {str(e)}")
-
-class SubmitDialog(QDialog):
-    """提交选择对话框"""
-    def __init__(self, all_files, changed_files, servers, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("选择要提交的服务器和文件")
-        self.setGeometry(100, 100, 800, 600)
-        
-        layout = QVBoxLayout(self)
-        
-        # 服务器选择区域
-        server_group = QGroupBox("选择服务器")
-        server_layout = QVBoxLayout()
-        self.server_checkboxes = {}
-        for server in servers:
-            cb = QCheckBox(f"{server['name']} ({server['address']})")
-            cb.setChecked(True)
-            self.server_checkboxes[server['id']] = cb
-            server_layout.addWidget(cb)
-        server_group.setLayout(server_layout)
-        layout.addWidget(server_group)
-        
-        # 文件选择区域
-        file_group = QGroupBox("选择文件")
-        file_layout = QVBoxLayout()
-        self.file_checkboxes = {}
-        
-        # 添加全选按钮
-        select_all = QCheckBox("全选")
-        file_layout.addWidget(select_all)
-        
-        # 添加所有文件，变更的文件默认选中
-        for file_path in all_files:
-            if "res" in file_path.split(os.sep):
-                continue
-            cb = QCheckBox(file_path)
-            cb.setChecked(file_path in changed_files)  # 变更的文件默认选中
-            if file_path in changed_files:
-                cb.setStyleSheet("color: red;")  # 变更的文件标红
-            self.file_checkboxes[file_path] = cb
-            file_layout.addWidget(cb)
-            
-        file_group.setLayout(file_layout)
-        
-        # 将文件选择区域放入滚动区域
-        scroll = QScrollArea()
-        scroll.setWidget(file_group)
-        scroll.setWidgetResizable(True)
-        layout.addWidget(scroll)
-        
-        # 按钮区域
-        buttons_layout = QHBoxLayout()
-        
-        # 添加配置按钮
-        self.config_btn = QPushButton("测试配置")
-        self.config_btn.setMinimumWidth(100)  # 设置最小宽度
-        
-        # 确认和取消按钮
-        self.ok_button = QPushButton("确认")
-        self.ok_button.setMinimumWidth(100)
-        self.cancel_button = QPushButton("取消")
-        self.cancel_button.setMinimumWidth(100)
-        
-        # 添加到按钮布局
-        buttons_layout.addWidget(self.config_btn)
-        buttons_layout.addStretch()  # 添加弹性空间
-        buttons_layout.addWidget(self.ok_button)
-        buttons_layout.addWidget(self.cancel_button)
-        
-        # 重要：将按钮布局添加到主布局
-        layout.addLayout(buttons_layout)
-        
-        # 存储配置
-        self.test_config = None
-        
-        # 连接信号
-        self.config_btn.clicked.connect(self.show_config_dialog)
-        self.ok_button.clicked.connect(self.accept)
-        self.cancel_button.clicked.connect(self.reject)
-        select_all.stateChanged.connect(
-            lambda state: [cb.setChecked(state == Qt.CheckState.Checked.value) 
-                         for cb in self.file_checkboxes.values()]
-        )
-    
-    def show_config_dialog(self):
-        """显示配置对话框"""
-        from src.views.dialogs.config_dialog import ConfigDialog
-        dialog = ConfigDialog(self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.test_config = dialog.get_config()
-    
-    def get_selected(self):
-        """获取选中的服务器和文件"""
-        selected_servers = [sid for sid, cb in self.server_checkboxes.items() 
-                          if cb.isChecked()]
-        selected_files = [path for path, cb in self.file_checkboxes.items() 
-                         if cb.isChecked()]
-        return selected_servers, selected_files, self.test_config
 
 class TestResultChart(QWidget):
     """测试结果图表显示"""
@@ -323,12 +226,20 @@ class MainWindow(QMainWindow):
         server_header_layout.addWidget(self.refresh_servers_btn)
         left_layout.addWidget(server_header)
         
-        # 服务器树
-        self.server_tree = QTreeView()
-        self.server_model = QStandardItemModel()
-        self.server_model.setHorizontalHeaderLabels(['服务器列表'])
-        self.server_tree.setModel(self.server_model)
-        left_layout.addWidget(self.server_tree)
+        # 服务器选择区域
+        server_group = QGroupBox()
+        server_layout = QVBoxLayout()
+        self.server_buttons = QButtonGroup(self)
+        
+        # 添加服务器单选按钮
+        for server in self.server_api.get_server_list():
+            radio = QRadioButton(f"{server['name']} ({server['address']})")
+            radio.setProperty('server_id', server['id'])
+            self.server_buttons.addButton(radio)
+            server_layout.addWidget(radio)
+        
+        server_group.setLayout(server_layout)
+        left_layout.addWidget(server_group)
         
         # 将左侧面板添加到分割器
         h_splitter.addWidget(left_panel)
@@ -364,6 +275,28 @@ class MainWindow(QMainWindow):
         dir_layout.addLayout(result_dir_layout)
         
         middle_layout.addWidget(dir_area)
+        
+        # 在文件树上方添加配置区域
+        config_group = QGroupBox("测试配置")
+        config_layout = QVBoxLayout()
+        
+        # 配置类型选择
+        config_type_layout = QHBoxLayout()
+        self.config_type_group = QButtonGroup(self)
+        for config_type in ["task_info", "initial_info", "old_game"]:
+            radio = QRadioButton(config_type)
+            self.config_type_group.addButton(radio)
+            config_type_layout.addWidget(radio)
+        config_layout.addLayout(config_type_layout)
+        
+        # 配置按钮
+        config_btn_layout = QHBoxLayout()
+        self.edit_config_btn = QPushButton("编辑配置")
+        config_btn_layout.addWidget(self.edit_config_btn)
+        config_layout.addLayout(config_btn_layout)
+        
+        config_group.setLayout(config_layout)
+        middle_layout.addWidget(config_group)
         
         # 创建垂直分割器用于文件树和变更文件树
         v_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -417,6 +350,12 @@ class MainWindow(QMainWindow):
         
         # 连接信号
         self.connect_signals()
+        
+        # 添加新的信号连接
+        self.edit_config_btn.clicked.connect(self.edit_config)
+        
+        # 加载保存的配置
+        self.load_saved_configs()
     
     def connect_signals(self):
         """连接信号和槽"""
@@ -425,7 +364,7 @@ class MainWindow(QMainWindow):
         self.res_dir_btn.clicked.connect(self.select_result_directory)
         self.refresh_servers_btn.clicked.connect(self.refresh_servers)
         self.submit_btn.clicked.connect(self.submit_changes)
-        self.server_tree.clicked.connect(self.on_server_selected)
+        self.server_buttons.buttonClicked.connect(self.on_server_selected)
         
         # 修改文件树的信号连接
         self.file_tree.clicked.connect(self.on_file_selected)
@@ -493,10 +432,10 @@ class MainWindow(QMainWindow):
             if isinstance(value, dict):  # 如果是目录
                 self._build_tree(item, value)
     
-    def on_server_selected(self, index: QModelIndex):
+    def on_server_selected(self, button):
         """处理服务器选择事件"""
-        server_id = index.data(Qt.ItemDataRole.UserRole)
-        server_name = index.data(Qt.ItemDataRole.DisplayRole)
+        server_id = button.property('server_id')
+        server_name = button.text().split('(')[0].strip()
         print(f"选择了服务器: {server_name} (ID: {server_id})")
     
     def on_file_selected(self, index: QModelIndex):
@@ -574,60 +513,73 @@ class MainWindow(QMainWindow):
     
     def refresh_servers(self):
         """刷新服务器列表"""
-        self.server_model.clear()
-        self.server_model.setHorizontalHeaderLabels(['服务器列表'])
+        # 清除现有按钮
+        for button in self.server_buttons.buttons():
+            self.server_buttons.removeButton(button)
+            button.deleteLater()
         
-        servers = self.server_api.get_server_list()
-        for server in servers:
-            item = QStandardItem(f"{server['name']} ({server['address']})")
-            item.setData(server['id'], Qt.ItemDataRole.UserRole)  # 存储服务器ID
-            self.server_model.appendRow(item)
-    
+        # 添加新的服务器按钮
+        for server in self.server_api.get_server_list():
+            radio = QRadioButton(f"{server['name']} ({server['address']})")
+            radio.setProperty('server_id', server['id'])
+            self.server_buttons.addButton(radio)
+            # 找到按钮的父布局
+            server_group = self.findChild(QGroupBox)
+            if server_group:
+                server_group.layout().addWidget(radio)
+
     def submit_changes(self):
         """提交更新"""
         if not self.file_manager.project_directory:
             QMessageBox.warning(self, "警告", "请先选择工程目录")
             return
         
-        # 获取所有文件列表
-        all_files = self.file_manager.get_all_files()
+        # 获取选中的配置类型
+        config_type = self.get_selected_config_type()
+        if not config_type:
+            QMessageBox.warning(self, "警告", "请选择配置类型")
+            return
         
-        # 打开选择对话框
-        dialog = SubmitDialog(all_files, self.changed_files, 
-                            self.server_api.get_server_list(), self)
-        
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            selected_servers, selected_files, test_config = dialog.get_selected()
-            
-            if not test_config:
-                QMessageBox.warning(self, "警告", "请先配置测试参数")
-                return
+        # 获取配置
+        configs = self.file_manager.database.get_selected_configs()
+        if not configs or config_type not in configs:
+            QMessageBox.warning(self, "警告", "请先设置配置")
+            return
 
-            # 异步保存文件版本
-            for file in selected_files:
-                self.file_manager.save_current_version(file)
-            
-            # 对每个选中的服务器进行更新
-            for server_id in selected_servers:
-                # 创建结果标签页
-                initial_results = {
-                    "status": "starting",
-                    "results": []
-                }
-                self.add_result_tab(server_id, initial_results)
-                
-                # 连接结果更新信号
-                self.server_api.result_listener.result_updated.connect(
-                    lambda results, sid=server_id: self.update_result_tab(sid, results)
-                )
-                
-                # 启动测试
-                success = self.server_api.update_config(
-                    server_id, selected_files, test_config, self.file_manager.project_directory)
-                
-                if not success:
-                    QMessageBox.warning(self, "错误", 
-                                      f"服务器 {server_id} 更新失败")
+        # 获取选中的服务器
+        selected_button = self.server_buttons.checkedButton()
+        if not selected_button:
+            QMessageBox.warning(self, "警告", "请选择服务器")
+            return
+        
+        server_id = selected_button.property('server_id')
+        server = next(s for s in self.server_api.get_server_list() if s['id'] == server_id)
+        
+        # 获取所有变更文件
+        changed_files = self.file_manager.get_changed_files()
+        
+        # 异步保存文件版本
+        for file in changed_files:
+            self.file_manager.save_current_version(file)
+        
+        # 创建结果标签页
+        initial_results = {"status": "starting", "results": []}
+        self.add_result_tab(server_id, initial_results)
+        
+        # 连接结果更新信号
+        self.server_api.result_listener.result_updated.connect(
+            lambda results: self.update_result_tab(server_id, results)
+        )
+        
+        # 启动测试
+        test_config = {config_type: configs[config_type]}
+        success = self.server_api.update_config(
+            server_id, changed_files, test_config,
+            self.file_manager.project_directory
+        )
+        
+        if not success:
+            QMessageBox.warning(self, "错误", f"服务器 {server['name']} 更新失败")
     
     def update_changed_tree(self):
         """更新变更文件树"""
@@ -697,3 +649,34 @@ class MainWindow(QMainWindow):
         """关闭窗口时清理资源"""
         self.file_manager.stop_save_thread()
         super().closeEvent(event)
+
+    def load_saved_configs(self):
+        """加载保存的配置"""
+        configs = self.file_manager.database.get_selected_configs()
+        if configs:
+            # 找到对应的配置类型并选中
+            for button in self.config_type_group.buttons():
+                if button.text() in configs:
+                    button.setChecked(True)
+                    break
+
+    def edit_config(self):
+        """编辑配置"""
+        config_type = self.get_selected_config_type()
+        if not config_type:
+            QMessageBox.warning(self, "警告", "请选择配置类型")
+            return
+        
+        # 获取已保存的配置
+        saved_configs = self.file_manager.database.get_selected_configs()
+        dialog = ConfigDialog(self, last_config=saved_configs, config_type=config_type)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            config = dialog.get_config()
+            # 保存到数据库
+            self.file_manager.database.save_config(config_type, config[config_type], True)
+
+    def get_selected_config_type(self):
+        """获取选中的配置类型"""
+        button = self.config_type_group.checkedButton()
+        return button.text() if button else None
