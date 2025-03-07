@@ -12,6 +12,7 @@ from file_manager import FileManager
 from server_api import ServerAPI
 from src.views.widgets.result_tab_widget import ResultTabWidget
 from src.views.dialogs.config_dialog import ConfigDialog
+import json
 
 class FileViewDialog(QDialog):
     """文件查看对话框"""
@@ -183,11 +184,48 @@ class FileDiffDialog(QDialog):
                 new_html.append(text)
         self.new_text.setHtml('<br>'.join(new_html))
 
+class ConfigConfirmDialog(QDialog):
+    """配置确认对话框"""
+    def __init__(self, config_type, config_data, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("确认配置")
+        self.setMinimumWidth(400)
+        
+        layout = QVBoxLayout(self)
+        
+        # 配置类型
+        type_label = QLabel(f"配置类型: {config_type}")
+        type_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(type_label)
+        
+        # 配置内容
+        content = QTextEdit()
+        content.setReadOnly(True)
+        content.setMaximumHeight(200)
+        content.setText(json.dumps(config_data, indent=2, ensure_ascii=False))
+        layout.addWidget(content)
+        
+        # 不再提示选项
+        self.dont_show = QCheckBox("本次运行期间不再提示")
+        layout.addWidget(self.dont_show)
+        
+        # 按钮
+        btn_layout = QHBoxLayout()
+        ok_btn = QPushButton("确认")
+        cancel_btn = QPushButton("取消")
+        btn_layout.addWidget(ok_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addLayout(btn_layout)
+        
+        ok_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+
 class MainWindow(QMainWindow):
     def __init__(self, file_manager: FileManager, server_api: ServerAPI):
         super().__init__()
         self.file_manager = file_manager
         self.server_api = server_api
+        self.skip_config_confirm = False  # 添加标志
         
         # 初始化模型
         self.server_model = QStandardItemModel()
@@ -214,30 +252,43 @@ class MainWindow(QMainWindow):
         # 左侧面板 - 服务器列表
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(10, 10, 10, 10)  # 设置边距
         
         # 服务器列表标题和刷新按钮
         server_header = QWidget()
         server_header_layout = QHBoxLayout(server_header)
         server_header_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # 使用小字体的标签
         server_label = QLabel("服务器列表")
+        server_label.setStyleSheet("font-size: 12px; font-weight: bold;")
+        
+        # 使用小按钮
         self.refresh_servers_btn = QPushButton("刷新")
+        self.refresh_servers_btn.setMaximumWidth(60)
+        self.refresh_servers_btn.setStyleSheet("font-size: 12px;")
+        
         server_header_layout.addWidget(server_label)
+        server_header_layout.addStretch()  # 添加弹性空间
         server_header_layout.addWidget(self.refresh_servers_btn)
         left_layout.addWidget(server_header)
         
         # 服务器选择区域
         server_group = QGroupBox()
         server_layout = QVBoxLayout()
+        server_layout.setSpacing(8)  # 设置按钮间距
+        server_layout.setContentsMargins(5, 5, 5, 5)  # 设置内边距
         self.server_buttons = QButtonGroup(self)
         
         # 添加服务器单选按钮
         for server in self.server_api.get_server_list():
             radio = QRadioButton(f"{server['name']} ({server['address']})")
+            radio.setStyleSheet("font-size: 12px; margin: 2px 0px;")  # 设置按钮样式
             radio.setProperty('server_id', server['id'])
             self.server_buttons.addButton(radio)
             server_layout.addWidget(radio)
         
+        server_layout.addStretch()  # 添加弹性空间，使按钮靠上对齐
         server_group.setLayout(server_layout)
         left_layout.addWidget(server_group)
         
@@ -545,7 +596,14 @@ class MainWindow(QMainWindow):
         if not configs or config_type not in configs:
             QMessageBox.warning(self, "警告", "请先设置配置")
             return
-
+        
+        # 显示配置确认对话框
+        if not self.skip_config_confirm:
+            dialog = ConfigConfirmDialog(config_type, configs[config_type], self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            self.skip_config_confirm = dialog.dont_show.isChecked()
+        
         # 获取选中的服务器
         selected_button = self.server_buttons.checkedButton()
         if not selected_button:
