@@ -175,12 +175,22 @@ class ResultTabWidget(QWidget):
         # 更新状态标签
         self.status_label.setText(f"测试状态: {results['status']}")
         
-        # 更新文件树
+        # 检查是否是纯文本结果
+        if len(results["results"]) == 1 and results["results"][0].get("type") == "text":
+            # 清空图表
+            if self.current_chart:
+                self.chart_layout.removeWidget(self.current_chart)
+                self.current_chart.deleteLater()
+                self.current_chart = None
+            
+            # 显示文本结果
+            self.table_view.setText(results["results"][0]["content"])
+            return
+        
+        # 处理常规结果
         self.file_tree.clear()
         self.populate_file_tree()
-        # # 如果当前有选中的图表，更新它
-        # if self.current_chart and self.file_tree.currentItem():
-        #     self.on_file_selected(self.file_tree.currentItem())
+        
         # 如果之前有选中的文件，找到并重新选中它
         if current_file_name:
             items = self.file_tree.findItems(current_file_name, Qt.MatchFlag.MatchExactly | Qt.MatchFlag.MatchRecursive)

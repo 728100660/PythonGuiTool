@@ -515,7 +515,7 @@ class SimuData:
         self.print_lab(out_put)
         # return data
 
-    def Task_simu(self, need_request=None):
+    def Task_simu(self, need_request=None, callback=None):
 
         if need_request:
 
@@ -575,10 +575,16 @@ class SimuData:
 
         time.sleep(3)
         getSimulateData = self.url + 'QuesetSimulateController/getSimulateData'
+        global g_run_forever
         for i in range(500):
+            if not g_run_forever:
+                break
             time.sleep(3)
             resp = requests.get(getSimulateData).text
             print(resp)
+            if callback:
+                callback(resp)
+        set_thread_stop_flag(0)
 
     @staticmethod
     def print_lab(data):
@@ -613,11 +619,8 @@ class SimuData:
         return tabulate(we, headers=head, tablefmt='double_outline')
 
 
-def run(url, task_info, initial_info, old_game, callback=None, project_path=None):
+def run(url, initial_info, callback=None, project_path=None):
     game_id = initial_info.get("gameId")
-    if game_id != task_info.get("gameId") or game_id != old_game.get("gameId"):
-        print("！！！！！！！！请确保所有配置的game_id一致，默认取task_info的gameId！！！！！！！！")
-        print(f"当前gameId为{game_id}")
     if not game_id:
         print(f"!!!!!!!!!!!!!!错误的gameId{game_id}!!!!!!!!!!!")
         return
@@ -638,7 +641,7 @@ def run(url, task_info, initial_info, old_game, callback=None, project_path=None
     for i in range(5000):
         if not g_run_forever:
             break
-        time.sleep(3)
+        time.sleep(5)
         data = axw.serverBet_Data_print()
         if callback:
             callback(data)
@@ -826,13 +829,13 @@ def json_read():
     excel.save(excel_path)
 
 
-def task_run(url, task_info, project_path="D:\\slot\\", need_request=1):
+def task_run(url, task_info, callback=None, project_path="D:\\slot\\", need_request=1):
 
     game_id = task_info.get("gameId")
     axw = SimuData(url=url, game_id=game_id, data=task_info, project_path=project_path)
     # axw.sent_csv_toweb()
     axw.sent_exl_toweb()
-    axw.Task_simu(need_request)
+    axw.Task_simu(need_request, callback)
 
     # a = axw.simu_serverBet()
     # with open('156_1_10000000.json','w') as st:

@@ -21,6 +21,23 @@ class TestResultListener(QObject):
             self._accumulate_data(category, data)
         
         self.result_updated.emit(self._process_result())
+
+    def on_result_update_others(self, result):
+        """处理结果更新"""
+        # 直接处理结果
+        self.result_updated.emit({
+            "status": "completed",
+            "results": [{
+                "file": "result.txt",
+                "status": "completed",
+                "content": result,
+                "type": "text"
+            }]
+        })
+        # for category, data in result.items():
+        #     self._accumulate_data(category, data)
+        #
+        # self.result_updated.emit(self._process_result())
     
     def _accumulate_data(self, category, data):
         """累积数据"""
@@ -107,6 +124,11 @@ class ServerAPI:
         ]
         self.result_listener = TestResultListener()
         self.test_thread = None  # 添加线程引用
+        self.method_mapping = {
+            'initial_info': (simu_data_get.run, self._handle_initial_result),
+            'task_info': (simu_data_get.task_run, self._handle_text_result),
+            'old_game': (simu_data_get.old_game_check, self._handle_text_result)
+        }
     
     def get_server_list(self) -> list:
         """获取服务器列表（预留接口）"""
@@ -120,15 +142,23 @@ class ServerAPI:
         self.result_listener.clear_results()
         
         url = self.get_server_config(server_id)["address"]
-        task_info = test_config.get("task_info", {})
-        initial_info = test_config.get("initial_info", {})
-        old_game = test_config.get("old_game", {})
+        config_type = next(iter(test_config.keys()))  # 获取配置类型
+        config_data = test_config[config_type]
+        
+        # 获取对应的方法和处理器
+        method, handler = self.method_mapping.get(config_type, (None, None))
+        if not method:
+            print(f"未知的配置类型: {config_type}")
+            return False
         
         # 在新线程中运行测试
         def run_test():
-            simu_data_get.run(
-                url, task_info, initial_info, old_game,
-                callback=self.result_listener.on_result_update,
+            method(
+                url, 
+                config_data,
+                callback=self.result_listener.on_result_update
+                    if config_type == 'initial_info'
+                    else self.result_listener.on_result_update_others,
                 project_path=project_path
             )
         
@@ -137,6 +167,16 @@ class ServerAPI:
         self.test_thread.daemon = True
         self.test_thread.start()
         return True
+
+    def _handle_initial_result(self, result):
+        """处理 initial_info 的结果"""
+        # 使用现有的处理逻辑
+        pass
+
+    def _handle_text_result(self, result):
+        """处理文本类型的结果"""
+        # 直接返回文本结果
+        return str(result)
 
     def get_server_config(self, server_id: int) -> dict:
         """通过id获取服务器配置"""
