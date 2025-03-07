@@ -166,10 +166,6 @@ class ResultTabWidget(QWidget):
     
     def update_results(self, results: dict):
         """更新测试结果"""
-        # 保存当前选中的文件名
-        current_item = self.file_tree.currentItem()
-        current_file_name = current_item.text(0) if current_item else None
-        
         self.results = results
         
         # 更新状态标签
@@ -192,8 +188,8 @@ class ResultTabWidget(QWidget):
         self.populate_file_tree()
         
         # 如果之前有选中的文件，找到并重新选中它
-        if current_file_name:
-            items = self.file_tree.findItems(current_file_name, Qt.MatchFlag.MatchExactly | Qt.MatchFlag.MatchRecursive)
+        if hasattr(self, 'current_file'):
+            items = self.file_tree.findItems(self.current_file, Qt.MatchFlag.MatchExactly | Qt.MatchFlag.MatchRecursive)
             if items:
                 self.file_tree.setCurrentItem(items[0])
                 self.on_file_selected(items[0])

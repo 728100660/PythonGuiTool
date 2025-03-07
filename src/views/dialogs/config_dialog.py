@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
                              QWidget, QLabel, QLineEdit, QPushButton,
-                             QMessageBox, QGroupBox, QFormLayout, QFileDialog)
+                             QMessageBox, QGroupBox, QFormLayout, QFileDialog, QScrollArea)
 from PyQt6.QtCore import Qt
 import json
 
@@ -71,49 +71,44 @@ class ConfigDialog(QDialog):
         # 创建选项卡
         tab_widget = QTabWidget()
 
-
-        task_tab = QWidget()
-        task_layout = QFormLayout(task_tab)
-        for label, input_field in self.config_inputs.items():
-            task_layout.addRow(label, input_field)
-        tab_widget.addTab(task_tab, self.config_type)
-        #
-        # # Task Info 选项卡
-        # task_tab = QWidget()
-        # task_layout = QFormLayout(task_tab)
-        # self.task_inputs = self.create_input_group(self.task_info)
-        # for label, input_field in self.task_inputs.items():
-        #     task_layout.addRow(label, input_field)
-        # tab_widget.addTab(task_tab, "Task Info")
-        #
-        # # Initial Info 选项卡
-        # initial_tab = QWidget()
-        # initial_layout = QFormLayout(initial_tab)
-        # self.initial_inputs = self.create_input_group(self.initial_info)
-        # for label, input_field in self.initial_inputs.items():
-        #     initial_layout.addRow(label, input_field)
-        # tab_widget.addTab(initial_tab, "Initial Info")
-        #
-        # # Old Game 选项卡
-        # old_tab = QWidget()
-        # old_layout = QFormLayout(old_tab)
-        # self.old_inputs = self.create_input_group(self.old_game)
-        # for label, input_field in self.old_inputs.items():
-        #     old_layout.addRow(label, input_field)
-        # tab_widget.addTab(old_tab, "Old Game")
+        # 创建配置编辑页面
+        config_tab = QWidget()
+        config_layout = QVBoxLayout(config_tab)
         
+        # 创建滚动区域
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_content = QWidget()
+        self.form_layout = QFormLayout(scroll_content)
+        
+        # 添加现有配置项
+        for label, input_field in self.config_inputs.items():
+            self.form_layout.addRow(label, input_field)
+        
+        scroll.setWidget(scroll_content)
+        config_layout.addWidget(scroll)
+        
+        # 添加新配置项的区域
+        add_config_group = QGroupBox("添加新配置项")
+        add_layout = QHBoxLayout()
+        self.new_key = QLineEdit()
+        self.new_key.setPlaceholderText("配置项名称")
+        self.new_value = QLineEdit()
+        self.new_value.setPlaceholderText("配置项值")
+        add_btn = QPushButton("+")
+        add_btn.clicked.connect(self.add_config_item)
+        
+        add_layout.addWidget(self.new_key)
+        add_layout.addWidget(self.new_value)
+        add_layout.addWidget(add_btn)
+        add_config_group.setLayout(add_layout)
+        config_layout.addWidget(add_config_group)
+        
+        tab_widget.addTab(config_tab, self.config_type)
         layout.addWidget(tab_widget)
         
         # 按钮区域
         button_layout = QHBoxLayout()
-        
-        # 添加导入/导出按钮
-        # import_btn = QPushButton("导入配置")
-        # export_btn = QPushButton("导出配置")
-        # import_btn.clicked.connect(self.import_config)
-        # export_btn.clicked.connect(self.export_config)
-        # button_layout.addWidget(import_btn)
-        # button_layout.addWidget(export_btn)
         
         # 添加确定/取消按钮
         ok_btn = QPushButton("确定")
@@ -125,6 +120,53 @@ class ConfigDialog(QDialog):
         
         layout.addLayout(button_layout)
     
+    def add_config_item(self):
+        """添加新的配置项"""
+        key = self.new_key.text().strip()
+        value = self.new_value.text().strip()
+        
+        if not key:
+            QMessageBox.warning(self, "警告", "请输入配置项名称")
+            return
+            
+        if key in self.config_inputs:
+            QMessageBox.warning(self, "警告", "配置项已存在")
+            return
+        
+        # 创建新的输入字段
+        input_field = QLineEdit()
+        input_field.setText(value)
+        
+        # 创建删除按钮
+        delete_btn = QPushButton("删除")
+        delete_btn.setMaximumWidth(60)
+        delete_btn.clicked.connect(lambda: self.delete_config_item(key))
+        
+        # 创建水平布局来容纳输入字段和删除按钮
+        input_layout = QHBoxLayout()
+        input_layout.addWidget(input_field)
+        input_layout.addWidget(delete_btn)
+        
+        # 将新配置项添加到表单
+        self.form_layout.addRow(key, input_layout)
+        self.config_inputs[key] = input_field
+        
+        # 清空输入框
+        self.new_key.clear()
+        self.new_value.clear()
+    
+    def delete_config_item(self, key):
+        """删除配置项"""
+        # 获取要删除的行索引
+        for i in range(self.form_layout.rowCount()):
+            label_item = self.form_layout.itemAt(i, QFormLayout.ItemRole.LabelRole)
+            if label_item and label_item.widget().text() == key:
+                # 删除表单中的行
+                self.form_layout.removeRow(i)
+                # 从配置输入字典中删除
+                del self.config_inputs[key]
+                break
+
     def create_input_group(self, data):
         """创建输入字段组"""
         inputs = {}
@@ -215,4 +257,4 @@ class ConfigDialog(QDialog):
         if 'old_game' in config:
             for key, value in config['old_game'].items():
                 if key in self.old_inputs:
-                    self.old_inputs[key].setText(str(value)) 
+                    self.old_inputs[key].setText(str(value))
