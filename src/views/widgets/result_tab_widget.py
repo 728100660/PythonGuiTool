@@ -1,6 +1,6 @@
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QTreeWidget, QTreeWidgetItem, QSplitter, QTextEdit)
+                             QTreeWidget, QTreeWidgetItem, QSplitter, QTextEdit, QPushButton)
 from PyQt6.QtCore import Qt
 from simu_data_get import SimuData
 import os
@@ -10,7 +10,8 @@ from simu_data_get import SimuData
 
 class ResultTabWidget(QWidget):
     """测试结果标签页"""
-    def __init__(self, server_info, results, res_dir, parent=None):
+    def __init__(self, server_info, results, res_dir, parent=None,
+                 server_api=None, config=None):
         super().__init__(parent)
         self.server_info = server_info
         self.results = results
@@ -18,6 +19,8 @@ class ResultTabWidget(QWidget):
         self.current_table = None
         self.res_dir = res_dir
         self.start_time = datetime.now()
+        self.server_api = server_api
+        self.config = config
         
         # 保存结果到文件
         self.save_results()
@@ -59,6 +62,11 @@ class ResultTabWidget(QWidget):
         self.table_view.setReadOnly(True)
         self.table_view.setFont(QFont("Courier New", 10))
         right_layout.addWidget(self.table_view)
+        
+        # 添加停止按钮
+        self.stop_btn = QPushButton("停止测试")
+        self.stop_btn.clicked.connect(self.stop_test)
+        right_layout.addWidget(self.stop_btn)
         
         # 添加到分割器
         splitter.addWidget(file_widget)
@@ -181,3 +189,16 @@ class ResultTabWidget(QWidget):
                 self.on_file_selected(items[0])
         
         self.save_results()
+
+    def stop_test(self):
+        """停止测试"""
+        if self.server_api.stop_test(
+                self.server_info['id'], self.config.get("gameId")):
+            self.status_label.setText("测试状态: stopped")
+            self.stop_btn.setEnabled(False)
+
+    def closeEvent(self, event):
+        """关闭事件"""
+        # 调用停止接口
+        self.server_api.stop_test(self.server_info['id'], self.config.get("gameId"))
+        super().closeEvent(event)

@@ -935,6 +935,16 @@ def old_game_check():
     total_info.to_excel('total_info.xlsx', sheet_name='Sheet1')
 
 
+def stop_bet(url, game_id):
+    stop = (url + 'SimulateLineGameController/stop?' +
+            urllib.parse.urlencode({'gameId': game_id}))
+    stop_ret = requests.post(stop)
+    time.sleep(1)
+    if stop_ret.status_code != 200:
+        print(stop_ret.text)
+        sys.exit()
+
+
 if __name__ == '__main__':
     g_game_id = 162
     g_task_info = {

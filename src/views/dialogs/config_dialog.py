@@ -108,12 +108,12 @@ class ConfigDialog(QDialog):
         button_layout = QHBoxLayout()
         
         # 添加导入/导出按钮
-        import_btn = QPushButton("导入配置")
-        export_btn = QPushButton("导出配置")
-        import_btn.clicked.connect(self.import_config)
-        export_btn.clicked.connect(self.export_config)
-        button_layout.addWidget(import_btn)
-        button_layout.addWidget(export_btn)
+        # import_btn = QPushButton("导入配置")
+        # export_btn = QPushButton("导出配置")
+        # import_btn.clicked.connect(self.import_config)
+        # export_btn.clicked.connect(self.export_config)
+        # button_layout.addWidget(import_btn)
+        # button_layout.addWidget(export_btn)
         
         # 添加确定/取消按钮
         ok_btn = QPushButton("确定")

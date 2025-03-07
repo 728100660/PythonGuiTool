@@ -186,12 +186,17 @@ class FileDiffDialog(QDialog):
 
 class ConfigConfirmDialog(QDialog):
     """配置确认对话框"""
-    def __init__(self, config_type, config_data, parent=None):
+    def __init__(self, config_type, config_data, server_name, parent=None):
         super().__init__(parent)
         self.setWindowTitle("确认配置")
         self.setMinimumWidth(400)
         
         layout = QVBoxLayout(self)
+        
+        # 服务器信息
+        server_label = QLabel(f"目标服务器: {server_name}")
+        server_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(server_label)
         
         # 配置类型
         type_label = QLabel(f"配置类型: {config_type}")
@@ -486,8 +491,7 @@ class MainWindow(QMainWindow):
     def on_server_selected(self, button):
         """处理服务器选择事件"""
         server_id = button.property('server_id')
-        server_name = button.text().split('(')[0].strip()
-        print(f"选择了服务器: {server_name} (ID: {server_id})")
+        self.file_manager.database.save_selected_server(server_id)
     
     def on_file_selected(self, index: QModelIndex):
         """处理文件选择事件"""
@@ -569,15 +573,22 @@ class MainWindow(QMainWindow):
             self.server_buttons.removeButton(button)
             button.deleteLater()
         
+        # 获取上次选中的服务器ID
+        last_selected = self.file_manager.database.get_selected_server()
+        
         # 添加新的服务器按钮
         for server in self.server_api.get_server_list():
             radio = QRadioButton(f"{server['name']} ({server['address']})")
             radio.setProperty('server_id', server['id'])
             self.server_buttons.addButton(radio)
-            # 找到按钮的父布局
-            server_group = self.findChild(QGroupBox)
-            if server_group:
-                server_group.layout().addWidget(radio)
+            self.config_group.layout().addWidget(radio)
+            
+            # 如果是上次选中的服务器，设置为选中状态
+            if last_selected and server['id'] == last_selected:
+                radio.setChecked(True)
+        
+        # 连接信号
+        self.server_buttons.buttonClicked.connect(self.on_server_selected)
 
     def submit_changes(self):
         """提交更新"""
@@ -596,22 +607,23 @@ class MainWindow(QMainWindow):
         if not configs or config_type not in configs:
             QMessageBox.warning(self, "警告", "请先设置配置")
             return
-        
-        # 显示配置确认对话框
-        if not self.skip_config_confirm:
-            dialog = ConfigConfirmDialog(config_type, configs[config_type], self)
-            if dialog.exec() != QDialog.DialogCode.Accepted:
-                return
-            self.skip_config_confirm = dialog.dont_show.isChecked()
-        
+
         # 获取选中的服务器
         selected_button = self.server_buttons.checkedButton()
         if not selected_button:
             QMessageBox.warning(self, "警告", "请选择服务器")
             return
-        
+
         server_id = selected_button.property('server_id')
         server = next(s for s in self.server_api.get_server_list() if s['id'] == server_id)
+        
+        # 显示配置确认对话框
+        if not self.skip_config_confirm:
+            dialog = ConfigConfirmDialog(config_type, configs[config_type],
+                                         self.server_api.get_server_name(server_id), self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            self.skip_config_confirm = dialog.dont_show.isChecked()
         
         # 获取所有变更文件
         changed_files = self.file_manager.get_changed_files()
@@ -622,7 +634,7 @@ class MainWindow(QMainWindow):
         
         # 创建结果标签页
         initial_results = {"status": "starting", "results": []}
-        self.add_result_tab(server_id, initial_results)
+        self.add_result_tab(server_id, initial_results, configs[config_type])
         
         # 连接结果更新信号
         self.server_api.result_listener.result_updated.connect(
@@ -667,7 +679,7 @@ class MainWindow(QMainWindow):
         self._build_tree(root, tree_dict)
         self.changed_tree.expandAll()
     
-    def add_result_tab(self, server_id: int, results: dict):
+    def add_result_tab(self, server_id: int, results: dict, config):
         """添加测试结果标签页"""
         # 获取服务器信息
         server_info = next(s for s in self.server_api.get_server_list() 
@@ -677,7 +689,9 @@ class MainWindow(QMainWindow):
         result_tab = ResultTabWidget(
             server_info, 
             results, 
-            self.file_manager.get_result_directory()
+            self.file_manager.get_result_directory(),
+            server_api=self.server_api,
+            config=config
         )
         
         # 添加新标签页

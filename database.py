@@ -47,6 +47,14 @@ class Database:
                 )
             ''')
             
+            # 创建用户偏好表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS user_preferences (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                )
+            ''')
+            
             conn.commit()
     
     def save_file_version(self, file_path: str, content: bytes):
@@ -125,4 +133,25 @@ class Database:
             )
             for config_type, config_data in cursor.fetchall():
                 configs[config_type] = json.loads(config_data)
-        return configs 
+        return configs
+
+    def save_selected_server(self, server_id: int):
+        """保存用户选中的服务器ID"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR REPLACE INTO user_preferences (key, value) VALUES (?, ?)",
+                ("selected_server", str(server_id))
+            )
+            conn.commit()
+
+    def get_selected_server(self) -> int:
+        """获取用户上次选中的服务器ID"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT value FROM user_preferences WHERE key = ?",
+                ("selected_server",)
+            )
+            result = cursor.fetchone()
+            return int(result[0]) if result else None 

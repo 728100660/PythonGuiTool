@@ -228,3 +228,16 @@ class ServerAPI:
             "status": "error",
             "results": []
         }
+
+    def stop_test(self, server_id: int, game_id: int) -> bool:
+        """停止测试（预留接口）"""
+        url = self.get_server_config(server_id)["address"]
+        print(f"停止服务器 {server_id} 的测试")
+        simu_data_get.stop_bet(url, game_id)
+        return True
+
+    def get_server_name(self, server_id):
+        for server in self.mock_servers:
+            if server["id"] == server_id:
+                return f"{server['name']}:{server['address']}"
+        return None
