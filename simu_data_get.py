@@ -826,51 +826,12 @@ def json_read():
     excel.save(excel_path)
 
 
-def task_run(need_request=None):
-    # url = 'http://192.168.30.74:8094/'
-    url = 'http://192.168.30.68:8096/'
-    # url = 'http://192.168.30.68:8096/'
+def task_run(url, task_info, project_path="D:\\slot\\", need_request=1):
 
-    game_id = 206
-    task_info = {
-        'betMoney': 2000000,
-        'betType': 0,
-        'gameActive': 1,
-        'gameId': game_id,
-        'initLevel': 650,
-        'initVipLevel': 1,
-        'initMoney': 10000000000000000000,
-        'threadNum': 1,
-        'times': 1000000,
-    }
-
-    initial_info = {
-        'betMoney': 10000,
-        'betType': 0,
-        'gameActive': 1,
-        'gameId': game_id,
-        # 'unlockFunction':False,
-        # 'group':30,
-        # 'chooseIndex':0,
-        'initLevel': 100,
-        'initMoney': 10000000000000000000,
-        'threadNum': 8,
-        'times': 10000000,
-    }
-    old_game = {
-        'betMoney': 10000,
-        'betTypeEnum': 'REGULAR',
-        'gameId': game_id,
-        'gameActive': 6,
-        'initMoney': 10000000000,
-        'level': 200,
-        'parameter': 2,
-        'run': 10000000,
-        'thread': 1,
-
-    }
-    axw = SimuData(url=url, game_id=game_id, data=task_info)
-    axw.sent_csv_toweb()
+    game_id = task_info.get("gameId")
+    axw = SimuData(url=url, game_id=game_id, data=task_info, project_path=project_path)
+    # axw.sent_csv_toweb()
+    axw.sent_exl_toweb()
     axw.Task_simu(need_request)
 
     # a = axw.simu_serverBet()
@@ -1011,11 +972,12 @@ if __name__ == '__main__':
     }
     # url = 'http://192.168.30.13:8095/'
     # url = 'http://192.168.30.74:8094/'
-    g_url = 'http://192.168.30.68:8096/'
+    # g_url = 'http://192.168.30.68:8096/'
+    g_url = 'http://192.168.30.121:8093/'
     run(g_url, g_task_info, g_initial_info, g_old_game,
         callback=None, project_path="D:\\slot\\")
     # old_game_check()
-    # task_run(1)
+    # task_run(g_url, g_task_info)
     # rtp_check()
     # json_read()
     # excel_change(r'C:\Users\admin\Desktop\2恭喜发财配置.xlsx',7)
