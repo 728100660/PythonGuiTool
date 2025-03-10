@@ -56,7 +56,26 @@ class Database:
             ''')
             
             conn.commit()
-    
+    def save_selected_config_type(self, config_type: str):
+        """保存用户选中的配置类型"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT OR REPLACE INTO user_preferences (key, value) VALUES (?, ?)",
+                ("selected_config_type", config_type)
+            )
+            conn.commit()
+
+    def get_selected_config_type(self) -> str:
+        """获取用户上次选中的配置类型"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT value FROM user_preferences WHERE key = ?",
+                ("selected_config_type",)
+            )
+            result = cursor.fetchone()
+            return result[0] if result else None
     def save_file_version(self, file_path: str, content: bytes):
         """保存文件版本"""
         file_hash = hashlib.md5(content).hexdigest()
@@ -154,4 +173,4 @@ class Database:
                 ("selected_server",)
             )
             result = cursor.fetchone()
-            return int(result[0]) if result else None 
+            return int(result[0]) if result else None

@@ -176,25 +176,39 @@ class ConfigDialog(QDialog):
                 input_field.setText(str(value).lower())
             else:
                 input_field.setText(str(value))
-            inputs[key] = input_field
+            
+            # 创建删除按钮
+            delete_btn = QPushButton("删除")
+            delete_btn.setMaximumWidth(60)
+            delete_btn.clicked.connect(lambda checked, k=key: self.delete_config_item(k))
+            
+            # 创建水平布局来容纳输入字段和删除按钮
+            input_layout = QHBoxLayout()
+            input_layout.addWidget(input_field)
+            input_layout.addWidget(delete_btn)
+            
+            # 创建一个容器widget来承载水平布局
+            container = QWidget()
+            container.setLayout(input_layout)
+            
+            inputs[key] = container
         return inputs
-    
+
     def get_config(self):
         """获取配置数据"""
         try:
-            # task_info = {k: self.parse_value(v.text())
-            #             for k, v in self.task_inputs.items()}
-            # initial_info = {k: self.parse_value(v.text())
-            #               for k, v in self.initial_inputs.items()}
-            # old_game = {k: self.parse_value(v.text())
-            #            for k, v in self.old_inputs.items()}
-            config_type_input = {k: self.parse_value(v.text())
-                       for k, v in self.config_inputs.items()}
+            config_type_input = {}
+            for k, v in self.config_inputs.items():
+                # 获取水平布局中的第一个控件（QLineEdit）
+                layout = v.layout()
+                if layout:
+                    line_edit = layout.itemAt(0).widget()
+                    if line_edit:
+                        config_type_input[k] = self.parse_value(line_edit.text())
+                else:
+                    config_type_input[k] = v.text()
 
             return {
-                # 'task_info': task_info,
-                # 'initial_info': initial_info,
-                # 'old_game': old_game,
                 self.config_type: config_type_input
             }
         except ValueError as e:

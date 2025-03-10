@@ -698,9 +698,12 @@ class MainWindow(QMainWindow):
         """加载保存的配置"""
         configs = self.file_manager.database.get_selected_configs()
         if configs:
+            # 获取上次选中的配置类型
+            last_selected = self.file_manager.database.get_selected_config_type()
             # 找到对应的配置类型并选中
             for button in self.config_type_group.buttons():
-                if button.text() in configs:
+                if (last_selected and button.text() == last_selected) or \
+                   (not last_selected and button.text() in configs):
                     button.setChecked(True)
                     break
 
