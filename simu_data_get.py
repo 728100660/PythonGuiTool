@@ -18,7 +18,7 @@ from tabulate import tabulate
 
 class SimuData:
 
-    def __init__(self, url, game_id, data=None, head=None, cookie=None, project_path=None):
+    def __init__(self, url, game_id, data=None, head=None, cookie=None):
         self.url = url
         self.game_id = game_id
         self.data = data
@@ -27,13 +27,8 @@ class SimuData:
         self.driver_path = r'C:\Users\admin\Desktop\模型\软件包\chromedriver-win64\chromedriver.exe'
         self.account = 'root'
         self.password = '123456'
-        self.project_path = project_path
-        self.csv_path = os.path.join(project_path, 'stage', 'server_csv')
-        self.excel_path = os.path.join(project_path, 'stage')
-        self.script_path = os.path.join(project_path, 'csvScript')
 
-    def sent_csv_toweb(self, stop=True):
-        file_path = self.csv_path
+    def sent_csv_toweb(self, file_path='D:\slot\stage\server_csv', stop=True):
         self.tranForm_data()
         if stop:
             stop = self.url + 'SimulateLineGameController/stop?' + urllib.parse.urlencode({'gameId': self.game_id})
@@ -90,65 +85,6 @@ class SimuData:
                     print('__' * 20, 'upload success again', '__' * 20)
             else:
                 print(rests.status_code, '----', 'upload fail', '  ', j)
-
-                sys.exit()
-        print('*' * 50, 'upload finished', '*' * 50)
-
-    def sent_exl_toweb(self, stop=True):
-        file_path = self.excel_path
-        if stop:
-            stop = self.url + 'SimulateLineGameController/stop?' + urllib.parse.urlencode({'gameId': self.game_id})
-            stop_ret = requests.post(stop)
-            time.sleep(1)
-            if stop_ret.status_code != 200:
-                print(stop_ret.text)
-                sys.exit()
-            else:
-                time.sleep(10)
-                print('stop sever success', '  ', 'Time: ', stop_ret.headers['Date'])
-
-        post_url = self.url + 'excelConfig/uploadServer'
-        fileobj = {
-            'type': (None, 'SERVER'),
-            'name': (None, 'S' + time.strftime('%Y%m%d%H%M', time.localtime())),
-        }
-        # ret = self.get_new_cookie()[0]
-        new_cookie = 'ds'  # ret.get('name') + '=' + ret.get('value')
-        headers = {
-            'Cookie': new_cookie,
-        }
-        menu_url = self.url + 'menu/get'
-        print(os.path.basename(file_path))
-        a = os.listdir(file_path)
-        for i in a:
-            if str(self.game_id) == [''.join(list(g)) for k, g in groupby(i, key=lambda x: x.isdigit())][0]:
-                file_name = i
-                print('find the file : {}'.format(file_name))
-                break
-        else:
-            print('无法定位文件夹，输入文件夹的位置')
-            file_name = input()
-        file_path = os.path.join(file_path, file_name)
-        with open(file_path, "rb") as file:
-            file_name = file_path.split(os.sep)[-1]
-            fileobj['file'] = (file_name, file)
-            rests = requests.post(post_url, files=fileobj)
-            if rests.status_code == 200:
-                print(file_name, '----', 'upload success')
-            elif rests.status_code == 500:
-                print('\n', '__' * 20, 'renew cookie', '__' * 20)
-                ret = self.get_new_cookie()[0]
-                new_cookie = ret.get('name') + '=' + ret.get('value')
-                print('\n', '__' * 20, 'new_cookie:', new_cookie, '__' * 20)
-                headers['Cookie'] = new_cookie
-                fileobj['file'] = (file_name, open(os.path.join(file_path, file_name), 'rb'))
-                rests = requests.post(post_url, files=fileobj)
-                if rests.status_code == 200:
-                    print(file_name, '----', 'upload success')
-                else:
-                    print('__' * 20, 'upload success again', '__' * 20)
-            else:
-                print(rests.status_code, '----', 'upload fail', '  ', file_name)
 
                 sys.exit()
         print('*' * 50, 'upload finished', '*' * 50)
@@ -236,15 +172,16 @@ class SimuData:
         io = 'sd'
         return io
 
-    def tranForm_data(self, type='stage'):
-        return
+    @classmethod
+    def tranForm_data(cls, type='stage'):
+        return      # TODO 暂时不检查
         type_list = {'stage': 'server_transform-stage.bat', 'system': 'server_transform-system.bat'}
-        fold_address = self.script_path
+        fold_address = r'D:\\slot\\csvScript\\'
         bat_name = type_list[type]
         original_path = os.getcwd()
         os.chdir(fold_address)
         # os.environ['PYTHONIOENCODING'] = 'utf8'
-        p = Popen("cmd.exe /c" + os.path.join(fold_address, bat_name), stdout=PIPE, stderr=STDOUT)
+        p = Popen("cmd.exe /c" + fold_address + bat_name, stdout=PIPE, stderr=STDOUT)
         curline = p.stdout.readline()
         print(curline.decode('utf8'))
         while 'pause' not in curline.decode('utf8'):
@@ -406,30 +343,20 @@ class SimuData:
             plt.legend()
             plt.show()
 
-    def is_formated_bet_data(self, bet_data):
-        if not isinstance(bet_data, dict):
-            return False
-        for key, data in bet_data.items():
-            if not isinstance(data, dict):
-                return False
-        return True
-
     def serverBet_Data_print(self, type=None):
         server_bet_data = self.simu_serverBet(type)
+        # TODO 以后key要允许配置，支持随服务器逻辑而变化
         key = (f"SimulateBetKey(groupId={self.data.get('group', 0)}, betType={self.data['betType']}, "
                f"gameActive={self.data['gameActive']}, unlockFunction={'true' if self.data['unlockFunction'] else 'false'})")
         data = server_bet_data[key]
         # data = self.simu_serverBet(type)["LongLongType(m_Long1=0, m_Long2=1)"]
-        # 如果服务器格式化了返回结果则使用服务器的，否则使用默认的格式化方式返回结果
-        if self.is_formated_bet_data(bet_data=data):
-            return data
         data_info = {
             'overall': {
                 'totalTimes': data['totalTimes'],
                 'totalRtp': data['totalRtp'],
                 'normalRtp': data['normalRtp'],
-                'mgBounsRtp': data.get('mgBounsRtp', 0),
-                'fgBounsRtp': data.get('fgBounsRtp', 0),
+                'mgBounsRtp': data.get('mgBounsRtp', 0),    # TODO 为什么没有值
+                'fgBounsRtp': data.get('fgBounsRtp', 0),    # TODO 为什么没有值
                 'freeRtp': data['freeRtp'],
                 'jackpotRtp': data['jackpotRtp'],
                 'bonusRtp': data['bonusRtp'],
@@ -445,10 +372,9 @@ class SimuData:
             # },
             'FG': {
                 'freeRtp': data['freeRtp'],
-                'fgBounsRtp': data.get('fgBounsRtp', 0),
+                'fgBounsRtp': data.get('fgBounsRtp', 0),    # TODO 为什么没有值
                 'fg_Freq': data['totalTimes'] / data['fgTimes'] if data['fgTimes'] else 0,
                 'fg_times': data['fgTimes'],
-                'totalTimes': data['totalTimes'],
             },
             # 'Jackpot':{
             #     'jackpotRtp': data['jackpotRtp'],
@@ -465,10 +391,11 @@ class SimuData:
             # 'mgBounsRtp':data['mgBounsRtp'],
         }
 
-        # self.print_lab(data_info)
-        # if data['totalTimes'] == self.data['times']:
-        #     self.printOut()
-        return data_info
+        self.print_lab(data_info)
+        if data['totalTimes'] == self.data['times']:
+            self.printOut()
+
+        return data
 
     def printOut(self):
         a = self.simu_serverBet()
@@ -515,7 +442,7 @@ class SimuData:
         self.print_lab(out_put)
         # return data
 
-    def Task_simu(self, need_request=None, callback=None):
+    def Task_simu(self, need_request=None):
 
         if need_request:
 
@@ -575,16 +502,10 @@ class SimuData:
 
         time.sleep(3)
         getSimulateData = self.url + 'QuesetSimulateController/getSimulateData'
-        global g_run_forever
         for i in range(500):
-            if not g_run_forever:
-                break
             time.sleep(3)
             resp = requests.get(getSimulateData).text
             print(resp)
-            if callback:
-                callback(resp)
-        set_thread_stop_flag(0)
 
     @staticmethod
     def print_lab(data):
@@ -615,19 +536,59 @@ class SimuData:
                     we[i].append(data_fame[j][i])
                 except IndexError:
                     we[i].append(" ")
+
         print(tabulate(we, headers=head, tablefmt='double_outline'))
-        return tabulate(we, headers=head, tablefmt='double_outline')
 
 
-def run(url, initial_info, callback=None, project_path=None):
-    game_id = initial_info.get("gameId")
-    if not game_id:
-        print(f"!!!!!!!!!!!!!!错误的gameId{game_id}!!!!!!!!!!!")
-        return
-    axw = SimuData(url=url, game_id=game_id, data=initial_info, project_path=project_path)
+def run():
+    # url = 'http://192.168.30.13:8095/'
+    # url = 'http://192.168.30.74:8094/'
+    url = 'http://192.168.30.68:8096/'
 
-    # axw.sent_csv_toweb()
-    axw.sent_exl_toweb()
+    game_id = 162
+    task_info = {
+        'betMoney': 2000000,
+        'betType': 0,
+        'gameActive': 1,
+        'gameId': game_id,
+        # 'group':30,
+        # 'chooseIndex':0,
+        'initLevel': 650,
+        'initMoney': 10000000000000000000,
+        'threadNum': 1,
+        'times': 10000,
+    }
+    initial_info = {
+        'betMoney': 1000000000,
+        'betType': 0,
+        'gameActive': 1,
+        'gameId': game_id,
+        'brokenInitialIndex': 60,
+        'ex': 0.9,
+        'unlockFunction': True,
+        # 'group':30,
+        # 'chooseIndex':0,
+        'initVipLevel': 1,
+        'initLevel': 100,
+        'initMoney': 10000000000000000000,
+        'threadNum': 8,
+        'times': 50000000,
+    }
+    old_game = {
+        'betMoney': 10000,
+        'betTypeEnum': 'REGULAR',
+        'gameId': game_id,
+        'gameActive': 1,
+        'initMoney': 10000000000,
+        'level': 200,
+        'parameter': 2,
+        'run': 10000000,
+        'thread': 1,
+
+    }
+    axw = SimuData(url=url, game_id=game_id, data=initial_info)
+
+    axw.sent_csv_toweb()
     # axw.sent_csv_toweb_special(file_path='D:\slot\stage\server_csv\关卡模式表', stop=True)
     # axw.simu_Bet(1)
     # for i in range(1000):
@@ -637,15 +598,9 @@ def run(url, initial_info, callback=None, project_path=None):
     #
 
     a = axw.simu_serverBet(1)
-    global g_run_forever
     for i in range(5000):
-        if not g_run_forever:
-            break
-        time.sleep(5)
-        data = axw.serverBet_Data_print()
-        if callback:
-            callback(data)
-    set_thread_stop_flag(0)
+        time.sleep(3)
+        axw.serverBet_Data_print()
 
     # a = axw.simu_OldGame(1)
     # for i in range(5000):
@@ -829,13 +784,52 @@ def json_read():
     excel.save(excel_path)
 
 
-def task_run(url, task_info, callback=None, project_path="D:\\slot\\", need_request=1):
+def task_run(need_request=None):
+    # url = 'http://192.168.30.74:8094/'
+    url = 'http://192.168.30.68:8096/'
+    # url = 'http://192.168.30.68:8096/'
 
-    game_id = task_info.get("gameId")
-    axw = SimuData(url=url, game_id=game_id, data=task_info, project_path=project_path)
-    # axw.sent_csv_toweb()
-    axw.sent_exl_toweb()
-    axw.Task_simu(need_request, callback)
+    game_id = 206
+    task_info = {
+        'betMoney': 2000000,
+        'betType': 0,
+        'gameActive': 1,
+        'gameId': game_id,
+        'initLevel': 650,
+        'initVipLevel': 1,
+        'initMoney': 10000000000000000000,
+        'threadNum': 1,
+        'times': 1000000,
+    }
+
+    initial_info = {
+        'betMoney': 10000,
+        'betType': 0,
+        'gameActive': 1,
+        'gameId': game_id,
+        # 'unlockFunction':False,
+        # 'group':30,
+        # 'chooseIndex':0,
+        'initLevel': 100,
+        'initMoney': 10000000000000000000,
+        'threadNum': 8,
+        'times': 10000000,
+    }
+    old_game = {
+        'betMoney': 10000,
+        'betTypeEnum': 'REGULAR',
+        'gameId': game_id,
+        'gameActive': 6,
+        'initMoney': 10000000000,
+        'level': 200,
+        'parameter': 2,
+        'run': 10000000,
+        'thread': 1,
+
+    }
+    axw = SimuData(url=url, game_id=game_id, data=task_info)
+    axw.sent_csv_toweb()
+    axw.Task_simu(need_request)
 
     # a = axw.simu_serverBet()
     # with open('156_1_10000000.json','w') as st:
@@ -913,74 +907,10 @@ def old_game_check():
     total_info.to_excel('total_info.xlsx', sheet_name='Sheet1')
 
 
-def stop_bet(url, game_id):
-    stop = (url + 'SimulateLineGameController/stop?' +
-            urllib.parse.urlencode({'gameId': game_id}))
-    stop_ret = requests.post(stop)
-    time.sleep(1)
-    if stop_ret.status_code != 200:
-        print(stop_ret.text)
-        sys.exit()
-
-def set_thread_stop_flag(flag=1):
-    global g_run_forever
-    if flag == 1:
-        g_run_forever = 0
-    else:
-        g_run_forever = 1
-
-g_run_forever = 1       # 程序是否一直循环
-
 if __name__ == '__main__':
-    g_game_id = 162
-    g_task_info = {
-        'betMoney': 2000000,
-        'betType': 0,
-        'gameActive': 1,
-        'gameId': g_game_id,
-        # 'group':30,
-        # 'chooseIndex':0,
-        'initLevel': 650,
-        'initMoney': 10000000000000000000,
-        'threadNum': 1,
-        'times': 10000,
-    }
-    g_initial_info = {
-        'betMoney': 1000000000,
-        'betType': 0,
-        'gameActive': 1,
-        'gameId': g_game_id,
-        'brokenInitialIndex': 60,
-        'ex': 0.9,
-        'unlockFunction': True,
-        # 'group':30,
-        # 'chooseIndex':0,
-        'initVipLevel': 1,
-        'initLevel': 100,
-        'initMoney': 10000000000000000000,
-        'threadNum': 8,
-        'times': 50000000,
-    }
-    g_old_game = {
-        'betMoney': 10000,
-        'betTypeEnum': 'REGULAR',
-        'gameId': g_game_id,
-        'gameActive': 1,
-        'initMoney': 10000000000,
-        'level': 200,
-        'parameter': 2,
-        'run': 10000000,
-        'thread': 1,
-
-    }
-    # url = 'http://192.168.30.13:8095/'
-    # url = 'http://192.168.30.74:8094/'
-    # g_url = 'http://192.168.30.68:8096/'
-    g_url = 'http://192.168.30.121:8093/'
-    run(g_url, g_task_info, g_initial_info, g_old_game,
-        callback=None, project_path="D:\\slot\\")
+    run()
     # old_game_check()
-    # task_run(g_url, g_task_info)
+    # task_run(1)
     # rtp_check()
     # json_read()
     # excel_change(r'C:\Users\admin\Desktop\2恭喜发财配置.xlsx',7)
