@@ -26,6 +26,7 @@ class ResultTabWidget(QWidget):
         self.save_results()
         
         self.init_ui()
+        self.current_file = None
     
     def init_ui(self):
         """初始化UI"""
@@ -128,6 +129,7 @@ class ResultTabWidget(QWidget):
             # 显示普通文本内容
             self.table_view.setText(result_data['content'])
         self.file_tree.setCurrentItem(item)
+        self.current_file = item.text(0)
 
     def save_results(self):
         """保存测试结果到文件"""
