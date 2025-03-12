@@ -64,12 +64,6 @@
 ```bash
 # 安装Python依赖
 pip install -r requirements.txt
-
-# 主要依赖包括：
-# - PyQt6>=6.0.0：GUI框架
-# - pyqtchart>=6.0.0：图表显示
-# - json5>=0.9.0：JSON处理
-# - requests>=2.31.0：HTTP请求
 ```
 还有安装node.js  v18.15.0
 
